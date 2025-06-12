@@ -1,5 +1,5 @@
 <template>
-    <div class="w-[500px] h-[500px] mt-[200px] bg-blue-800 pt-50 flex items-center justify-center text-white font-bold text-lg rounded-lg shadow-lg">
+    <div class="w-[1000px] h-[500px] mt-[200px] bg-white pt-50 flex items-center justify-center text-white font-bold text-lg rounded-lg shadow-lg">
       Квадрат
     </div>
   </template>

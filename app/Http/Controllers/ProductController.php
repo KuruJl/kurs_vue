@@ -6,83 +6,72 @@ use App\Models\Category; // Убедись, что это импортирова
 use App\Models\Product;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
+use Illuminate\Support\Facades\Log; // <-- ДОБАВЬТЕ ЭТУ СТРОКУ
 
 class ProductController extends Controller
 {
     public function index(Request $request)
     {
-        $products = Product::query();
+        $query = Product::with('category'); // Начинаем с eager loading категории
 
-        // Применение фильтров по категориям
-        if ($request->has('category') && is_array($request->input('category'))) {
-            $products->whereIn('category_id', $request->input('category'));
-        }
-
-        // Применение фильтров по цене
-        if ($request->filled('min_price')) {
-            $products->where('price', '>=', $request->input('min_price'));
+        // --- Добавление логики фильтрации (если она есть) ---
+        // Например, для minPrice, maxPrice, category_id, search
+        if ($request->filled('min_price')) { // Используйте filled() чтобы проверить, что значение не пустое
+            $query->where('price', '>=', $request->min_price);
         }
         if ($request->filled('max_price')) {
-            $products->where('price', '<=', $request->input('max_price'));
+            $query->where('price', '<=', $request->max_price);
         }
+        if ($request->filled('category_id')) {
+            $query->where('category_id', $request->category_id);
+        }
+        if ($request->filled('search')) {
+            $query->where('name', 'like', '%' . $request->search . '%');
+        }
+        // ----------------------------------------------------
 
-        $filteredProducts = $products->paginate(10)->withQueryString();
-        
-        // Для каталога, если ты используешь подход с переводом на бэкенде:
-        // $categories = Category::all()->map(function ($category) {
-        //     return [
-        //         'id' => $category->id,
-        //         'name' => __("categories." . $category->name),
-        //         'original_name' => $category->name,
-        //     ];
-        // });
-        // Если используешь перевод на фронте, то просто Category::all():
-        $categories = Category::all();
+        // Используем paginate() для пагинации
+        // Например, 12 продуктов на страницу.
+        // withQueryString() сохраняет параметры фильтрации в URL пагинации.
+        $products = $query->paginate(12)->withQueryString();
+
+        // Логирование для отладки
+      
 
         return Inertia::render('Catalog', [
-            'products' => $filteredProducts,
-            'categories' => $categories,
-            'filters' => $request->only(['category', 'min_price', 'max_price']),
+            'products' => $products, // Inertia автоматически сериализует пагинатор в нужный формат для Vue
+            'categories' => \App\Models\Category::all(), // Если вы передаете категории для фильтрации
+            // Передаем текущие значения фильтров для инициализации полей в Vue
+            'initialMinPrice' => $request->min_price ? (int)$request->min_price : null,
+            'initialMaxPrice' => $request->max_price ? (int)$request->max_price : null,
+            'initialCategoryId' => $request->category_id ? (int)$request->category_id : null,
+            'initialSearch' => $request->search,
         ]);
     }
 
     /**
      * Отображает страницу с деталями товара.
      */
-    public function show(string $slug)
+    public function show(Product $product) // Laravel автоматически найдет продукт по slug
     {
-        $product = Product::where('slug', $slug)
-                            ->with('category') // Загружаем категорию для отображения, если нужно
-                            ->firstOrFail(); // Если товар не найден, вернется 404
+        // Получаем связанные товары (из той же категории, исключая текущий)
+        $relatedProducts = Product::where('category_id', $product->category_id)
+                                    ->where('id', '!=', $product->id)
+                                    ->limit(4) // Ограничиваем количество связанных товаров
+                                    ->get();
 
-        // Получаем несколько случайных товаров для секции "ТАКЖЕ ПОКУПАЮТ"
-        // Исключаем текущий товар, чтобы не показывать его в рекомендациях
-        $relatedProducts = Product::where('id', '!=', $product->id)
-                                  ->inRandomOrder()
-                                  ->limit(4) // Ограничиваем до 4 товаров, как на старой странице
-                                  ->get();
+        // Логируем, что отправляется в ProductPage.vue
+        \Log::info('Data sent to ProductPage.vue:', [
+            'product_id' => $product->id,
+            'product_name' => $product->name,
+            'product_image_url' => $product->image_url,
+            'product_quantity_available' => $product->quantity_available,
+            'related_products_count' => $relatedProducts->count(),
+        ]);
 
         return Inertia::render('ProductPage', [
-            'product' => [
-                'id' => $product->id,
-                'name' => $product->name,
-                'price' => $product->price,
-                'description' => $product->description,
-                'image_url' => $product->image, // Используем аксессор getImageUrlAttribute
-                'in_stock' => $product->in_stock,
-                'quantity_available' => $product->quantity,
-                'slug' => $product->slug,
-                'category_name' => $product->category ? $product->category->name : null, // Имя категории
-            ],
-            'relatedProducts' => $relatedProducts->map(function ($p) {
-                return [
-                    'id' => $p->id,
-                    'name' => $p->name,
-                    'price' => $p->price,
-                    'image_url' => $p->image,
-                    'slug' => $p->slug,
-                ];
-            }),
+            'product' => $product,
+            'relatedProducts' => $relatedProducts,
         ]);
     }
 }

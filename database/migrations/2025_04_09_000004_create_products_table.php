@@ -17,10 +17,11 @@ return new class extends Migration
             $table->string('name');
             $table->decimal('price', 10, 2);
             $table->text('description');
+            $table->text('feature');
             $table->string('image');
             $table->boolean('in_stock')->default(true);
             $table->string('slug')->unique();
-            $table->integer('quantity')->default(0)->unsigned();
+            $table->integer('quantity')->default(100)->unsigned();
             $table->timestamps();
         });
     }

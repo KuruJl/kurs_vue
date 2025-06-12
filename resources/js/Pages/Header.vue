@@ -1,7 +1,7 @@
 <template>
     <header class="flex flex-col mt-[50px] sm:flex-row justify-between items-center
                    w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-0 mt-4 sm:h-16">
-        <Link href="/" class="font-norwester text-4xl sm:text-5xl md:text-6xl text-pink-200">
+        <Link href="/" class="font-norwester  text-4xl sm:text-5xl md:text-6xl text-pink-200">
             hachiroku
         </Link>
 
