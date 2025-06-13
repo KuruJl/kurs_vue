@@ -48,9 +48,8 @@ Route::middleware('auth')->group(function () {
 
     // Маршрут для оформления заказа
     Route::get('/checkout', function () {
-        return Inertia::render('CheckoutPage'); // Или твой контроллер
+        return Inertia::render('CheckoutPage');
     })->name('checkout');
-
 });
 
 // Маршрут для страницы каталога
@@ -64,8 +63,7 @@ Route::get('/square', function () {
     return Inertia::render('Square');
 });
 
-// Маршрут для страницы товара по slug
+// Маршрут для страницы товара по id
 Route::get('/products/{slug}', [ProductController::class, 'show'])->name('products.show');
-
 
 require __DIR__.'/auth.php';

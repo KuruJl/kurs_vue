@@ -1,102 +1,64 @@
 <script setup>
-import { Head, Link, router } from '@inertiajs/vue3';
-import { ref, computed, onMounted } from 'vue';
-import AppHeader from './Header.vue'; // Проверьте правильность пути
-import AppFooter from './Footer.vue'; // Проверьте правильность пути
+import { Head, Link } from '@inertiajs/vue3';
+import { ref, computed } from 'vue';
+import AppHeader from './Header.vue';
+import AppFooter from './Footer.vue';
 
 const props = defineProps({
-    product: Object,
-    relatedProducts: Array,
+    product: {
+        type: Object,
+        required: true,
+        default: () => ({})
+    },
+    relatedProducts: {
+        type: Array,
+        default: () => []
+    }
 });
 
 const quantity = ref(1);
-const thumbnails = ref([]);
-// Начальное значение mainImage должно быть product.image_url, которое теперь гарантированно работает
-const mainImage = ref(props.product.image_url);
-
-onMounted(() => {
-    // В вашем текущем Product модели, 'image' - это строка.
-    // Если у вас нет отдельной таблицы product_images и отношения,
-    // то props.product.images будет undefined, и этот блок не нужен.
-    // Оставляем его закомментированным, если у вас нет отдельного отношения изображений.
-    /*
-    const coverImage = props.product.images?.find(img => img.is_cover);
-    if (coverImage) {
-        mainImage.value = coverImage.url;
-    }
-    thumbnails.value = props.product.images?.filter(img => !img.is_cover).slice(0, 3) || [];
-    */
-});
-
-const incrementQuantity = () => {
-    // Используем product.quantity_available для проверки, которое теперь должно быть корректно определено
-    if (props.product.quantity_available !== undefined && quantity.value < props.product.quantity_available) {
-        quantity.value++;
-    }
-};
-
-const decrementQuantity = () => {
-    if (quantity.value > 1) {
-        quantity.value--;
-    }
-};
-
-const addToCart = () => {
-    router.post('/cart', {
-        product_id: props.product.id,
-        quantity: quantity.value,
-    }, {
-        onSuccess: () => {
-            alert(`"${props.product.name}" (x${quantity.value}) успешно добавлен в корзину!`);
-            // Если вы хотите, чтобы страница корзины обновилась после добавления,
-            // можете перенаправить на страницу корзины:
-            // router.visit('/cart');
-        },
-        onError: (errors) => {
-            if (errors && errors.message) {
-                alert(`Ошибка при добавлении в корзину: ${errors.message}`);
-            } else if (errors && Object.keys(errors).length > 0) {
-                 alert('Произошла ошибка при добавлении в корзину. Подробности в консоли.');
-                 console.error('Ошибка добавления в корзину (валидация или другие):', errors);
-            } else {
-                alert('Произошла неизвестная ошибка при добавлении в корзину.');
-            }
-        },
-        preserveScroll: true,
-    });
-};
+const mainImage = ref(props.product?.image_url || '');
+const thumbnails = ref([
+    props.product?.image_url || '',
+    'https://i.ibb.co/svLWFTGM/image-12.png',
+    'https://i.ibb.co/PZR5L7md/image-14.png'
+]);
 
 const productFeatures = computed(() => {
-    if (props.product.feature) {
-        return props.product.feature.split('\n').filter(item => item.trim() !== '');
-    }
-    return ['Характеристики отсутствуют'];
+    if (!props.product?.feature) return [];
+    return props.product.feature.split('\n').filter(item => item.trim() !== '');
 });
+
+const formatPrice = (value) => {
+    if (!value) return '0.00';
+    return new Intl.NumberFormat('ru-RU', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+    }).format(value);
+};
 </script>
 
 <template>
-    <Head :title="product.name" />
+    <Head :title="product?.name || 'Товар'" />
+    <AppHeader />
 
-    <div class="min-h-screen bg-darkBlue flex flex-col">
-        <AppHeader />
-
-        <main class="flex-grow w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-14">
-            <div class="flex flex-col lg:flex-row gap-8 sm:gap-10 md:gap-16">
-                <div>
-                    <div class="border border-white/30 w-full rounded-lg overflow-hidden bg-Wblue
-                                 flex items-center justify-center
-                                 aspect-[4/3] sm:aspect-[16/9] lg:aspect-[3/2]
-                                 max-w-[600px] mx-auto">
-                        <img :src="mainImage" :alt="product.name" class="block w-full h-full object-contain" />
+    <main class="min-h-screen bg-Wblue px-4 sm:px-6 lg:px-8">
+        <div class="container mx-auto py-8 sm:py-12">
+            <!-- Основной контент страницы -->
+            <div v-if="product" class="flex flex-col lg:flex-row gap-8 sm:gap-10 md:gap-16">
+                <!-- Блок с изображениями товара -->
+                <section class="w-full lg:w-auto lg:max-w-xl flex-shrink-0">
+                    <div class="border border-white/30 w-full aspect-[4/3] flex items-center justify-center rounded-lg overflow-hidden">
+                        <img :src="mainImage" :alt="product.name" class="max-w-full max-h-full object-contain" />
                     </div>
-                    <div class="mt-4 flex justify-center gap-2">
-                        <div v-for="(thumb, index) in thumbnails" :key="index"
-                            class="w-20 h-20 border border-white/30 rounded-lg overflow-hidden bg-Wblue cursor-pointer hover:border-white"
-                            @click="mainImage = thumb.url">
-                            <img :src="thumb.url" :alt="`Thumbnail ${index + 1}`" class="w-full h-full object-cover" />
+                    <div class="flex gap-3 mt-4">
+                        <div v-for="(thumb, index) in thumbnails" :key="index" 
+                             @click="mainImage = thumb"
+                             class="border border-white/30 flex-1 aspect-square flex items-center justify-center rounded overflow-hidden cursor-pointer hover:border-white/70 transition">
+                            <img :src="thumb" :alt="product.name + ' миниатюра ' + (index + 1)" class="max-w-full max-h-full object-contain" />
                         </div>
                     </div>
-                </div>
+                </section>
 
                 <section class="flex-1">
                     <h1 class="font-rubik-semibold text-4xl sm:text-5xl md:text-6xl text-white">{{ product.name }}</h1>
@@ -108,92 +70,92 @@ const productFeatures = computed(() => {
                         </p>
                     </div>
 
-                    <div class="mt-8 sm:mt-10">
+                    <div class="mt-8 sm:mt-10" v-if="productFeatures.length > 0">
                         <h2 class="font-rubik-medium text-xl sm:text-2xl text-white/90">Характеристики</h2>
-                        <ul class="font-rubik-light flex flex-col text-lg sm:text-xl text-white/80 mt-2 leading-relaxed list-none">
+                        <ul class="font-rubik-light text-lg sm:text-xl text-white/80 mt-2 leading-relaxed list-disc list-inside">
                             <li v-for="(feature, index) in productFeatures" :key="index">{{ feature }}</li>
                         </ul>
                     </div>
 
-                    <form @submit.prevent="addToCart" class="mt-10 sm:mt-12">
+                    <div class="mt-10 sm:mt-12">
                         <div class="flex flex-wrap items-center gap-6 sm:gap-8">
-                            <div class="font-rubik-semibold text-4xl sm:text-5xl text-pink-200">{{
-                                product.price.toLocaleString('ru-RU') }} ₽</div>
-
+                            <div class="font-rubik-semibold text-4xl sm:text-5xl text-white">{{ formatPrice(product.price) }} ₽</div>
                             <div class="flex items-center">
-                                <label for="quantity"
-                                    class="font-rubik-light text-white/80 mr-2 whitespace-nowrap">Количество:</label>
-                                <div class="quantity-selector">
-                                    <button type="button" class="quantity-btn minus"
-                                        @click="decrementQuantity">−</button>
-                                    <input type="number" id="quantity" name="quantity" v-model="quantity" min="1"
-                                        :max="product.quantity_available" aria-label="Количество товара"
-                                        class="quantity-input">
-                                    <button type="button" class="quantity-btn plus"
-                                        @click="incrementQuantity">+</button>
+                                <label class="font-rubik-light text-white/80 mr-2 whitespace-nowrap">Количество:</label>
+                                <div class="quantity-selector flex items-center">
+                                    <button type="button" @click="quantity > 1 ? quantity-- : null" 
+                                            class="quantity-btn minus w-8 h-8 flex items-center justify-center border border-white/30 bg-transparent text-white text-lg">−</button>
+                                    <input type="number" v-model.number="quantity" min="1" :max="product.quantity_available" 
+                                           class="quantity-input w-12 h-8 text-center bg-transparent text-white border-t border-b border-white/30" />
+                                    <button type="button" @click="quantity < product.quantity_available ? quantity++ : null" 
+                                            class="quantity-btn plus w-8 h-8 flex items-center justify-center border border-white/30 bg-transparent text-white text-lg">+</button>
                                 </div>
                             </div>
-
-                            <button type="submit" :disabled="product.quantity_available === 0"
-                                class="bg-blue-600/20 text-white border-2 border-white rounded-md py-3 px-8 sm:py-4 sm:px-10 font-rubik-semibold text-lg sm:text-xl hover:bg-blue-600/30 transition whitespace-nowrap"
-                                :class="{ 'opacity-50 cursor-not-allowed': product.quantity_available === 0 }">
-                                {{ product.quantity_available === 0 ? 'Нет в наличии' : 'Добавить в корзину' }}
+                            <button :disabled="!product.is_in_stock"
+                                    class="bg-blue-600/20 text-white border-2 border-white rounded-md py-3 px-8 sm:py-4 sm:px-10 font-rubik-semibold text-lg sm:text-xl hover:bg-blue-600/30 transition whitespace-nowrap">
+                                {{ product.is_in_stock ? 'Добавить в корзину' : 'Нет в наличии' }}
                             </button>
-
-                            <template v-if="product.quantity_available > 0">
-                                <label for="" class="font-rubik-light text-white/80 mr-2 whitespace-nowrap">В
-                                    наличии:</label>
-                                <span class="font-rubik-semibold text-white/90">{{ product.quantity_available }}</span>
-                            </template>
-                            <template v-else>
-                                <span class="font-rubik-semibold text-red-500">Нет в наличии</span>
-                            </template>
+                            <span class="font-rubik-light text-white/80 whitespace-nowrap">
+                                {{ product.is_in_stock ? 'В наличии' : 'Нет в наличии' }} ({{ product.quantity_available }} шт.)
+                            </span>
                         </div>
-                    </form>
+                    </div>
                 </section>
             </div>
 
-            <section v-if="relatedProducts.length > 0" class="mt-16 sm:mt-24">
+            <!-- Похожие товары -->
+            <section class="mt-16 sm:mt-24" v-if="relatedProducts && relatedProducts.length > 0">
                 <h2 class="font-rubik-medium text-3xl sm:text-4xl text-pink-200">ТАКЖЕ ПОКУПАЮТ</h2>
                 <div class="mt-8 sm:mt-12 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 sm:gap-8">
-                    <Link v-for="relProduct in relatedProducts" :key="relProduct.id"
-                        :href="`/products/${relProduct.slug}`"
-                        class="border border-white/30 bg-blue-600/10 rounded-xl overflow-hidden group flex flex-col text-center hover:bg-blue-600/20 transition duration-300 aspect-[1/1]">
+                    <Link v-for="related in relatedProducts" :key="related.id" :href="`/products/${related.id}`" 
+                          class="border border-white/30 bg-blue-600/10 rounded-xl overflow-hidden group flex flex-col text-center hover:bg-blue-600/20 transition duration-300 aspect-[1/1]">
                         <div class="p-4 sm:p-6 flex-grow flex flex-col justify-center">
-                            <h3 class="font-rubik-semibold text-xl sm:text-2xl text-white/90 mb-2">{{ relProduct.name }}
-                            </h3>
-                            <img :src="relProduct.image_url" :alt="relProduct.name"
-                                class="max-w-[80%] max-h-[120px] object-contain mx-auto my-2 group-hover:scale-105 transition duration-300" />
+                            <h3 class="font-rubik-semibold text-xl sm:text-2xl text-white/90 mb-2">{{ related.name }}</h3>
+                            <img :src="related.image_url" :alt="related.name" 
+                                 class="max-w-[80%] max-h-[120px] object-contain mx-auto my-2 group-hover:scale-105 transition duration-300" />
                         </div>
                         <div class="mt-auto p-4 pt-0">
-                            <p
-                                class="font-rubik-semibold text-xl md:text-2xl rounded-full bg-white/80 text-black/80 py-2 px-4 inline-block">
-                                {{ relProduct.price.toLocaleString('ru-RU') }} ₽
+                            <p class="font-rubik-semibold text-xl md:text-2xl rounded-full bg-white/80 text-black/80 py-2 px-4 inline-block">
+                                {{ formatPrice(related.price) }} ₽
                             </p>
                         </div>
                     </Link>
                 </div>
             </section>
-        </main>
+        </div>
+    </main>
 
-        <AppFooter />
-    </div>
+    <AppFooter />
 </template>
 
 <style scoped>
-/* Стили для шрифтов и селектора количества остаются без изменений */
-.font-norwester {
-    font-family: 'Norwester', sans-serif;
+/* Стили остаются без изменений */
+.quantity-selector {
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.quantity-input {
+    -moz-appearance: textfield;
+}
+
+.quantity-input::-webkit-outer-spin-button,
+.quantity-input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.quantity-btn {
+    transition: all 0.2s;
+}
+
+.quantity-btn:hover {
+    background-color: rgba(255, 255, 255, 0.1);
 }
 
 .font-rubik-light {
     font-family: 'Rubik', sans-serif;
     font-weight: 300;
-}
-
-.font-rubik-regular {
-    font-family: 'Rubik', sans-serif;
-    font-weight: 400;
 }
 
 .font-rubik-medium {
@@ -206,70 +168,7 @@ const productFeatures = computed(() => {
     font-weight: 600;
 }
 
-.quantity-selector {
-    display: inline-flex;
-    align-items: center;
-    border: 1px solid rgba(255, 255, 255, 0.3);
-    border-radius: 0.375rem;
-    overflow: hidden;
-    height: 42px;
-}
-
-.quantity-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 32px;
-    height: 100%;
-    background: rgba(255, 255, 255, 0.1);
-    border: none;
-    color: white;
-    cursor: pointer;
-    transition: all 0.2s;
-    font-size: 1rem;
-}
-
-.quantity-btn:hover {
-    background: rgba(255, 255, 255, 0.2);
-}
-
-.quantity-input {
-    width: 50px;
-    height: 100%;
-    text-align: center;
-    border: none;
-    border-left: 1px solid rgba(255, 255, 255, 0.3);
-    border-right: 1px solid rgba(255, 255, 255, 0.3);
-    background: rgba(255, 255, 255, 0.1);
-    color: white;
-    font-size: 1rem;
-    -moz-appearance: textfield;
-    padding: 0;
-}
-
-.quantity-input:focus {
-    outline: none;
-    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5);
-}
-
-.quantity-input::-webkit-outer-spin-button,
-.quantity-input::-webkit-inner-spin-button {
-    -webkit-appearance: none;
-    margin: 0;
-}
-
-label[for="quantity"] {
-    font-family: 'Rubik', sans-serif;
-    font-weight: 300;
-    color: rgba(255, 255, 255, 0.8);
-    margin-right: 0.5rem;
-}
-
 .bg-Wblue {
     background-color: #011F41;
-}
-
-.bg-darkBlue {
-    background-color: #001A33;
 }
 </style>

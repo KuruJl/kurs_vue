@@ -7,16 +7,15 @@ import AppHeader from './Header.vue';
 import AppFooter from './Footer.vue';
 
 const props = defineProps({
-    products: { // Объект пагинации
+    products: {
         type: Object,
         required: true,
         default: () => ({ data: [], links: [], meta: {} }),
     },
-    categories: { // Массив категорий для фильтра
+    categories: {
         type: Array,
         default: () => [],
     },
-    // Начальные значения для фильтров, пришедшие из URL
     initialMinPrice: {
         type: [Number, null],
         default: null,
@@ -25,7 +24,7 @@ const props = defineProps({
         type: [Number, null],
         default: null,
     },
-    initialCategoryIds: { // Изменено на Array для множественного выбора категорий
+    initialCategoryIds: {
         type: Array,
         default: () => [],
     },
@@ -38,13 +37,13 @@ const props = defineProps({
 // Реактивные переменные для фильтров
 const minPrice = ref(props.initialMinPrice);
 const maxPrice = ref(props.initialMaxPrice);
-const selectedCategoryIds = ref([...props.initialCategoryIds]); // Используем массив для чекбоксов
+const selectedCategoryIds = ref([...props.initialCategoryIds]);
 const searchTerm = ref(props.initialSearch);
 
-// Функция для форматирования цен (как было в Blade)
+// Функция для форматирования цен
 const formatPrice = (value) => {
     return new Intl.NumberFormat('ru-RU', {
-        minimumFractionDigits: 2, // 2 знака после запятой
+        minimumFractionDigits: 2,
         maximumFractionDigits: 2,
     }).format(value);
 };
@@ -54,13 +53,13 @@ const applyFilters = () => {
     router.get('/catalog', {
         min_price: minPrice.value,
         max_price: maxPrice.value,
-        category: selectedCategoryIds.value, // Передаем массив выбранных категорий
+        category: selectedCategoryIds.value,
         search: searchTerm.value,
-        page: 1 // Сбрасываем страницу на 1 при применении новых фильтров
+        page: 1
     }, {
         preserveState: true,
         preserveScroll: true,
-        replace: true, // Использовать replace, чтобы не засорять историю браузера
+        replace: true,
     });
 };
 
@@ -70,21 +69,22 @@ const resetFilters = () => {
     maxPrice.value = null;
     selectedCategoryIds.value = [];
     searchTerm.value = null;
-    applyFilters(); // Применяем фильтры после сброса
+    applyFilters();
 };
 
-// Функция для обрезки текста (аналог Str::limit)
+// Функция для обрезки текста
 const truncateDescription = (text, length) => {
     if (!text) return '';
     if (text.length <= length) return text;
     return text.substring(0, length) + '...';
 };
 
-// Определяем класс для цвета фона (Wblue) - если он не глобальный в Tailwind
-// Убедитесь, что 'Wblue' определен в вашем tailwind.config.js
-// Если это просто HEX-код, то лучше использовать его напрямую или определить в config
-// Пример из вашего предыдущего кода: `bg-Wblue`
-// Если Wblue = #011F41, то можно использовать bg-[#011F41] или определить в config
+// Отладка
+console.log('Products received in Catalog.vue:', props.products.data.map(p => ({
+    id: p.id,
+    name: p.name,
+    slug: p.slug
+})));
 </script>
 
 <template>
@@ -93,7 +93,7 @@ const truncateDescription = (text, length) => {
 
     <main class="min-h-screen bg-Wblue px-4 sm:px-6 lg:px-8">
         <div class="container mx-auto py-8 sm:py-14">
-            <h1 class="font-norwester text-2xl sm:text-4xl md:text-5xl text-pink-200 mb-6">Фильтр товаров</h1>
+            <h1 class="font-rubik-semibold text-center text-2xl sm:text-4xl md:text-5xl text-pink-200 mb-6">Фильтр товаров</h1>
 
             <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
                 <aside class="bg-Wblue rounded-xl border-2 border-white/50 p-6 sm:p-8 h-auto">
@@ -105,7 +105,7 @@ const truncateDescription = (text, length) => {
                             <div v-for="category in categories" :key="category.id" class="flex items-center">
                                 <input type="checkbox" :id="`category_${category.id}`" :value="category.id"
                                        v-model="selectedCategoryIds"
-                                       class="form-checkbox h-5 w-5 text-pink-200 focus:ring-pink-500 border-white/70 rounded">
+                                       class="form-checkbox h-5 w-5 text-Wblue focus:ring-pink-500 border-white/70 rounded">
                                 <label :for="`category_${category.id}`" class="ml-2 font-rubik-light text-lg text-white/80">{{ category.name }}</label>
                             </div>
 
@@ -137,15 +137,24 @@ const truncateDescription = (text, length) => {
                 <section class="md:col-span-3">
                     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
                         <template v-if="products.data.length > 0">
-                            <Link v-for="product in products.data" :key="product.id" :href="`/products/${product.slug}`"
-                                  class="bg-Wblue rounded-xl border-2 border-white/50 overflow-hidden group">
-                                <img :src="product.image_url" :alt="product.name" class="w-full h-48 object-cover group-hover:scale-105 transition duration-300">
-                                <div class="p-4 sm:p-6">
-                                    <h3 class="font-rubik-semibold text-xl text-white mb-2">{{ product.name }}</h3>
-                                    <p class="font-rubik-light text-lg text-white/80 mb-2">{{ truncateDescription(product.description, 50) }}</p>
-                                    <p class="font-rubik-semibold text-xl text-pink-200">{{ formatPrice(product.price) }} ₽</p>
+                            <div v-for="product in products.data" :key="product.id"
+                                  class="bg-Wblue rounded-xl border-2 border-white/50 overflow-hidden group flex flex-col">
+                                <Link :href="`/products/${product.id}`" class="flex-grow flex flex-col">
+                                    <img :src="product.image_url" :alt="product.name"
+                                         class="w-full h-48 object-cover group-hover:scale-105 transition duration-300">
+                                    <div class="p-4 sm:p-6 flex-grow">
+                                        <h3 class="font-rubik-semibold text-xl text-white mb-2">{{ product.name }}</h3>
+                                        <p class="font-rubik-light text-lg text-white/80">{{ truncateDescription(product.description, 100) }}</p>
                                     </div>
-                            </Link>
+                                </Link>
+                                <div class="p-4 sm:p-6 pt-0 mt-auto">
+                                    <p class="font-rubik-semibold text-xl text-pink-200 mb-4">{{ formatPrice(product.price) }} ₽</p>
+                                    <Link :href="`/products/${product.id}`"
+                                          class="inline-block bg-blue-600/20 text-white border-2 border-white rounded-md py-2 px-4 font-rubik-light text-lg hover:bg-blue-600/30 transition">
+                                        Подробнее
+                                    </Link>
+                                </div>
+                            </div>
                         </template>
                         <template v-else>
                             <p class="font-rubik-light text-lg text-white/80 col-span-full text-center">Нет товаров, соответствующих выбранным фильтрам.</p>
@@ -168,18 +177,15 @@ const truncateDescription = (text, length) => {
         </div>
     </main>
 
-    <div class="border-t-2 border-white/20 my-6 sm:my-8"></div>
     <AppFooter />
 </template>
 
 <style scoped>
-/* Ваши стили, если они не в Tailwind CSS config */
-/* Добавьте эти стили, если они не являются частью вашей глобальной таблицы стилей Tailwind */
-.font-norwester { font-family: 'Norwester', sans-serif; } /* Убедитесь, что шрифт Norwester импортирован */
+.font-norwester { font-family: 'Norwester', sans-serif; }
 .font-rubik-light { font-family: 'Rubik', sans-serif; font-weight: 300; }
 .font-rubik-regular { font-family: 'Rubik', sans-serif; font-weight: 400; }
 .font-rubik-medium { font-family: 'Rubik', sans-serif; font-weight: 500; }
 .font-rubik-semibold { font-family: 'Rubik', sans-serif; font-weight: 600; }
 .bg-darkBlue { background-color: #001A33; }
-.bg-Wblue { background-color: #011F41; } /* Убедитесь, что этот цвет определен в вашем tailwind.config.js */
+.bg-Wblue { background-color: #011F41; }
 </style>
