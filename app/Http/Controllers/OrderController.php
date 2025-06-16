@@ -9,7 +9,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Illuminate\Support\Facades\Log;
-
+use Illuminate\Support\Facades\Auth;
 class OrderController extends Controller
 {
     /**
@@ -133,33 +133,26 @@ class OrderController extends Controller
      */
     public function index()
     {
-        if (!auth()->check()) {
-            return redirect()->route('login')->with('error', 'Для просмотра заказов необходимо войти в аккаунт.');
-        }
+        $userOrders = Auth::user()->orders()
+                           ->with(['items.product']) // Загружаем товары и их продукты
+                           ->latest()
+                           ->paginate(10);
 
-        $user = auth()->user();
-
-        $orders = $user->orders()->with(['items.product'])->latest()->get();
-
-        return inertia('Profile/Partials/OrderHistory', [
-            'orders' => $orders->map(function ($order) {
-                return [
-                    'id' => $order->id,
-                    'order_number' => $order->order_number,
-                    'total_amount' => $order->total_amount,
-                    'status' => $order->status,
-                    'created_at' => $order->created_at->format('d.m.Y H:i'),
-                    'items' => $order->items->map(function ($item) {
-                        return [
-                            'product_name' => $item->product_name,
-                            'quantity' => $item->quantity,
-                            'price' => $item->price,
-                            'product_slug' => $item->product->slug ?? null,
-                            'product_image_url' => $item->product ? $item->product->main_image_url : asset('images/default_product.png'),
-                        ];
-                    }),
-                ];
-            }),
+        return Inertia::render('Profile/Orders', [ // Убедитесь, что это правильный путь к компоненту для истории заказов
+            'userOrders' => $userOrders->through(fn ($order) => [
+                'id' => $order->id,
+                'order_number' => $order->order_number,
+                'total_amount' => $order->total_amount,
+                'status' => __('statuses.' . $order->status), // <-- ПЕРЕВОД СТАТУСА ЗДЕСЬ
+                'created_at' => $order->created_at->format('d.m.Y H:i'),
+                'items' => $order->items->map(fn ($item) => [
+                    'product_name' => $item->product_name,
+                    'quantity' => $item->quantity,
+                    'price' => $item->price,
+                    'product_image_url' => $item->product ? $item->product->main_image_url : asset('images/default_product.png'),
+                    'product_slug' => $item->product->slug ?? null,
+                ])
+            ])
         ]);
     }
 }

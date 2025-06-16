@@ -1,11 +1,29 @@
 <script setup>
-import { defineProps } from 'vue';
+// import { defineProps } from 'vue'; // Можете удалить defineProps, это просто предупреждение
 import { Head, Link } from '@inertiajs/vue3';
 
 const props = defineProps({
   orders: Object,
-  availableStatuses: Array, // Это не используется в этом компоненте, но мы его оставим, так как он приходит
+  availableStatuses: Array, 
 });
+
+// Функция для получения класса цвета статуса
+const getStatusColorClass = (status) => {
+  switch (status) {
+    case 'В ожидании':
+      return 'bg-blue-100 text-blue-800';
+    case 'В обработке':
+      return 'bg-yellow-100 text-yellow-800';
+    case 'Отправлен':
+      return 'bg-purple-100 text-purple-800';
+    case 'Доставлен':
+      return 'bg-green-100 text-green-800';
+    case 'Отменен':
+      return 'bg-red-100 text-red-800';
+    default:
+      return 'bg-gray-100 text-gray-800';
+  }
+};
 </script>
 
 <template>
@@ -52,8 +70,10 @@ const props = defineProps({
                   <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     {{ order.total_amount }}
                   </td>
-                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {{ order.status }}
+                  <td class="px-6 py-4 whitespace-nowrap text-sm">
+                    <span :class="['px-2 inline-flex text-xs leading-5 font-semibold rounded-full', getStatusColorClass(order.status)]">
+                      {{ order.status }}
+                    </span>
                   </td>
                   <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     {{ order.created_at }}
@@ -68,14 +88,19 @@ const props = defineProps({
             </table>
 
             <div class="mt-4 flex justify-between items-center">
-              <Link
-                v-for="link in orders.links"
-                :key="link.label"
-                :href="link.url"
-                v-html="link.label"
-                class="px-4 py-2 text-sm leading-5 rounded-md focus:outline-none transition ease-in-out duration-150"
-                :class="{ 'bg-indigo-500 text-white': link.active, 'text-gray-700 hover:bg-gray-100': !link.active }"
-              />
+              <template v-for="link in orders.links" :key="link.label">
+                <Link
+                  v-if="link.url" :href="link.url"
+                  v-html="link.label"
+                  class="px-4 py-2 text-sm leading-5 rounded-md focus:outline-none transition ease-in-out duration-150"
+                  :class="{ 'bg-indigo-500 text-white': link.active, 'text-gray-700 hover:bg-gray-100': !link.active }"
+                />
+                <span 
+                  v-else 
+                  v-html="link.label" 
+                  class="px-4 py-2 text-sm leading-5 rounded-md text-gray-400 cursor-not-allowed"
+                ></span>
+              </template>
             </div>
           </div>
           <p v-else class="text-gray-600">Заказов пока нет.</p>

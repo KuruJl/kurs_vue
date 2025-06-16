@@ -34,11 +34,12 @@ class OrderController extends Controller
         return Inertia::render('Admin/Orders/Index', [
             'orders' => $orders->through(fn ($order) => [
                 'id' => $order->id,
+                
                 'order_number' => $order->order_number,
                 // Безопасный доступ к имени пользователя, если user может быть null (хотя не должен быть)
                 'user_name' => $order->user->name ?? 'Неизвестный пользователь', 
                 'total_amount' => $order->total_amount,
-                'status' => $order->status,
+                'status' => __('statuses.' . $order->status), // <-- Добавляем перевод
                 'created_at' => $order->created_at->format('d.m.Y H:i'),
             ]),
             'availableStatuses' => self::AVAILABLE_STATUSES, // Передаем доступные статусы во Vue для выпадающего списка
@@ -49,35 +50,41 @@ class OrderController extends Controller
      * Отображает детали конкретного заказа для административной панели.
      * Используем Model Binding: Laravel автоматически найдет Order по {order} из URL.
      */
-    public function show(Order $order) // Laravel автоматически вернет 404, если Order не найден по ID
+    public function show($id) // Изменяем с Order $order на $id, чтобы вручную контролировать поиск
     {
-        // Загружаем связанные данные: пользователя и товары заказа (с информацией о продукте).
-        $order->load(['user', 'items.product']);
-
+        // Eager load relationships user, items, and product for each item
+        $order = Order::with(['user', 'items.product'])->find($id);
+    
+        // Если заказ не найден, передаем null во Vue
+        // Vue компонент обработает это через v-if="order"
+        if (!$order) {
+            return Inertia::render('Admin/Orders/Show', [
+                'order' => null, // Явно передаем null
+                'availableStatuses' => self::AVAILABLE_STATUSES,
+            ]);
+        }
+    
         return Inertia::render('Admin/Orders/Show', [
             'order' => [
                 'id' => $order->id,
                 'order_number' => $order->order_number,
                 'total_amount' => $order->total_amount,
-                'status' => $order->status,
+                'status' => __('statuses.' . $order->status), // <-- Добавляем перевод
                 'created_at' => $order->created_at->format('d.m.Y H:i'),
-                // Данные пользователя, который сделал заказ
                 'user' => [
                     'id' => $order->user->id,
                     'name' => $order->user->name,
                     'email' => $order->user->email,
                 ],
-                // Форматируем список товаров в заказе
                 'items' => $order->items->map(fn ($item) => [
                     'product_name' => $item->product_name,
                     'quantity' => $item->quantity,
                     'price' => $item->price,
-                    // Проверяем наличие продукта, так как он может быть удален из БД
                     'product_slug' => $item->product->slug ?? null,
                     'product_image_url' => $item->product ? $item->product->main_image_url : asset('images/default_product.png'),
                 ]),
             ],
-            'availableStatuses' => self::AVAILABLE_STATUSES, // Доступные статусы для формы обновления
+            'availableStatuses' => self::AVAILABLE_STATUSES,
         ]);
     }
 

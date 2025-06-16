@@ -1,13 +1,14 @@
 <script setup>
-import { Head, useForm, usePage } from '@inertiajs/vue3';
+// import { defineProps, ref, watch } from 'vue'; // Убрал defineProps
 import { ref, watch } from 'vue';
+import { Head, useForm, usePage } from '@inertiajs/vue3';
 
 // Правильные пути к AppHeader и AppFooter (как у вас)
 import AppHeader from '../Header.vue';
 import AppFooter from '../Footer.vue';
 
 // ИМПОРТ КОМПОНЕНТА ЗАКАЗОВ - ПУТЬ ИСПРАВЛЕН
-import OrderHistory from '../../Components/OrderHistory.vue';
+import OrderHistory from '../../Components/OrderHistory.vue'; // Предполагаем, что OrderHistory.vue находится в resources/js/Components
 
 const page = usePage(); // Получаем доступ к объекту страницы напрямую
 
@@ -24,9 +25,9 @@ const props = defineProps({
         type: String,
         default: '',
     },
-    orders: { // <--- Добавляем пропс для заказов
-        type: Array,
-        default: () => [],
+    orders: { // <--- Добавляем пропс для заказов, это объект с data, links и т.д. от пагинации
+        type: Object, // Changed to Object since it's paginated data
+        default: () => ({ data: [], links: [] }), // Default to empty object with data and links
     },
 });
 
@@ -112,7 +113,8 @@ const deleteUser = () => {
     <AppHeader />
     <Head title="Профиль" />
 
-    <main class="w-full min-h-screen bg-Wblue pb-12"> <h2 class="font-rubik-semibold mt-10 sm:mt-20 mb-8 sm:mb-16 text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-medium text-center text-rose-100">
+    <main class="w-full min-h-screen bg-Wblue pb-12"> 
+        <h2 class="font-rubik-semibold mt-10 sm:mt-20 mb-8 sm:mb-16 text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-medium text-center text-rose-100">
             ПРОФИЛЬ
         </h2>
 
@@ -258,7 +260,8 @@ const deleteUser = () => {
                 <h3 class="font-rubik-semibold mb-6 sm:mb-10 text-2xl sm:text-3xl font-bold text-white">
                     Мои заказы
                 </h3>
-                <OrderHistory :orders="props.orders" /> </div>
+                <OrderHistory :orders="props.orders" /> 
+            </div>
 
             <div class="p-4 sm:p-8 bg-[#011F41] shadow sm:rounded-lg border-2 border-white/50">
                 <h3 class="font-rubik-semibold mb-6 sm:mb-10 text-2xl sm:text-3xl font-bold text-white">
