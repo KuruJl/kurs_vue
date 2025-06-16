@@ -13,11 +13,11 @@ return new class extends Migration
     {
         Schema::create('orders', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('user_id')->constrained();
-            $table->decimal('total', 12, 2);
-            $table->string('status')->default('new'); // new, paid, shipped, cancelled
-            $table->text('address')->nullable();
-            $table->timestamps();
+            $table->foreignId('user_id')->constrained()->onDelete('cascade'); // Связь с пользователем
+            $table->string('order_number')->unique(); // Уникальный номер заказа
+            $table->decimal('total_amount', 10, 2); // Общая сумма заказа
+            $table->string('status')->default('pending'); // Статус заказа (pending, processing, completed, cancelled, etc.)
+            $table->timestamps(); // created_at (дата заказа), updated_at
         });
     }
 

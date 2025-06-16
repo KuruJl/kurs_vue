@@ -63,6 +63,17 @@ const applyFilters = () => {
     });
 };
 
+// Функция для получения URL изображения продукта
+const getProductImage = (product) => {
+    if (product.main_image_url) {
+        return product.main_image_url;
+    }
+    if (!product.images || product.images.length === 0) {
+        return '/images/default-product.png'; // Путь к изображению-заглушке
+    }
+    return product.images[0].path;
+};
+
 // Функция для сброса фильтров
 const resetFilters = () => {
     minPrice.value = null;
@@ -83,7 +94,9 @@ const truncateDescription = (text, length) => {
 console.log('Products received in Catalog.vue:', props.products.data.map(p => ({
     id: p.id,
     name: p.name,
-    slug: p.slug
+    slug: p.slug,
+    main_image_url: p.main_image_url,
+    images_count: p.images ? p.images.length : 0
 })));
 </script>
 
@@ -93,9 +106,9 @@ console.log('Products received in Catalog.vue:', props.products.data.map(p => ({
 
     <main class="min-h-screen bg-Wblue px-4 sm:px-6 lg:px-8">
         <div class="container mx-auto py-8 sm:py-14">
-            <h1 class="font-rubik-semibold text-center text-2xl sm:text-4xl md:text-5xl text-pink-200 mb-6">Фильтр товаров</h1>
+            <h1 class="font-rubik-semibold text-center text-2xl sm:text-4xl md:text-5xl text-pink-200 mb-6">Каталог товаров</h1>
 
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-8 items-start"> 
                 <aside class="bg-Wblue rounded-xl border-2 border-white/50 p-6 sm:p-8 h-auto">
                     <h2 class="font-rubik-semibold text-xl sm:text-2xl text-white mb-4">Фильтры</h2>
 
@@ -138,18 +151,20 @@ console.log('Products received in Catalog.vue:', props.products.data.map(p => ({
                     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
                         <template v-if="products.data.length > 0">
                             <div v-for="product in products.data" :key="product.id"
-                                  class="bg-Wblue rounded-xl border-2 border-white/50 overflow-hidden group flex flex-col">
-                                <Link :href="`/products/${product.id}`" class="flex-grow flex flex-col">
-                                    <img :src="product.image_url" :alt="product.name"
-                                         class="w-full h-48 object-cover group-hover:scale-105 transition duration-300">
-                                    <div class="p-4 sm:p-6 flex-grow">
+                                 class="bg-Wblue rounded-xl border-2 border-white/50 overflow-hidden group flex flex-col">
+                                <Link :href="`/products/${product.slug || product.id}`" class="flex-grow flex flex-col">
+                                    <div class="w-full h-48 sm:h-56 md:h-64 flex items-center justify-center overflow-hidden ">
+                                        <img :src="getProductImage(product)" :alt="product.name"
+                                             class="max-w-full px-4 max-h-full object-contain group-hover:scale-105 transition duration-300">
+                                    </div>
+                                    <div class="p-4 sm:p-6 flex-grow flex flex-col justify-between">
                                         <h3 class="font-rubik-semibold text-xl text-white mb-2">{{ product.name }}</h3>
-                                        <p class="font-rubik-light text-lg text-white/80">{{ truncateDescription(product.description, 100) }}</p>
+                                        <p class="font-rubik-light text-lg text-white/80 text-sm">{{ truncateDescription(product.description, 100) }}</p>
                                     </div>
                                 </Link>
                                 <div class="p-4 sm:p-6 pt-0 mt-auto">
                                     <p class="font-rubik-semibold text-xl text-pink-200 mb-4">{{ formatPrice(product.price) }} ₽</p>
-                                    <Link :href="`/products/${product.id}`"
+                                    <Link :href="`/products/${product.slug || product.id}`"
                                           class="inline-block bg-blue-600/20 text-white border-2 border-white rounded-md py-2 px-4 font-rubik-light text-lg hover:bg-blue-600/30 transition">
                                         Подробнее
                                     </Link>
@@ -162,15 +177,21 @@ console.log('Products received in Catalog.vue:', props.products.data.map(p => ({
                     </div>
 
                     <div v-if="products.links && products.links.length > 3" class="mt-8 flex justify-center flex-wrap gap-2">
-                        <Link v-for="(link, index) in products.links" :key="index" :href="link.url"
-                            v-html="link.label"
-                            class="px-4 py-2 mx-1 rounded-md transition duration-300"
-                            :class="{
-                                'bg-blue-600 text-white font-rubik-medium border border-white': link.active,
-                                'text-gray-300 hover:text-white hover:bg-white/10 border border-transparent': !link.active && link.url,
-                                'cursor-not-allowed text-gray-500 bg-white/5 border border-transparent': !link.url
-                            }">
-                        </Link>
+                        <template v-for="(link, key) in products.links">
+                            <div v-if="link.url === null" :key="key"
+                                 class="px-4 py-2 text-white/50 border border-white/30 rounded-md cursor-not-allowed text-sm"
+                                 v-html="link.label">
+                            </div>
+                            <Link v-else :key="`link-${key}`"
+                                  :href="link.url"
+                                  class="px-4 py-2 rounded-md transition text-sm"
+                                  :class="{
+                                      'bg-pink-200 text-black border-pink-200': link.active,
+                                      'text-white border border-white/30 hover:bg-white/10': !link.active
+                                  }"
+                                  v-html="link.label">
+                            </Link>
+                        </template>
                     </div>
                 </section>
             </div>
@@ -181,6 +202,7 @@ console.log('Products received in Catalog.vue:', props.products.data.map(p => ({
 </template>
 
 <style scoped>
+/* Ваши стили */
 .font-norwester { font-family: 'Norwester', sans-serif; }
 .font-rubik-light { font-family: 'Rubik', sans-serif; font-weight: 300; }
 .font-rubik-regular { font-family: 'Rubik', sans-serif; font-weight: 400; }

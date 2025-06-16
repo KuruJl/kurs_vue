@@ -1,8 +1,8 @@
 <template>
     <footer class="border-t border-white/20
                    w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8
-                   mt-16 sm:mt-24 mb-6 sm:mb-10
-                   pt-8 sm:pt-12 flex flex-wrap justify-between items-start gap-8 ">
+                    sm:mt-24  sm:mb-10
+                    sm:pt-12 flex flex-wrap justify-between items-start gap-8 ">
         <div class="flex-shrink-0">
             <Link href="/" class="font-norwester text-3xl sm:text-4xl md:text-5xl text-pink-200 hover:opacity-90 transition">hachiroku</Link>
         </div>
@@ -12,8 +12,17 @@
                 <h3 class="font-rubik-medium text-white/90 mb-1">Навигация</h3>
                 <Link href="/catalog" class="font-rubik-light hover:opacity-80 transition">Каталог</Link>
                 <Link href="/support" class="font-rubik-light hover:opacity-80 transition">Поддержка</Link>
-                <Link href="/login" class="font-rubik-light hover:opacity-80 transition">Вход | Регистрация</Link>
-            </nav>
+                <template v-if="user">
+                        <form @submit.prevent="logout">
+                            <button type="submit" class="font-rubik-light hover:opacity-80 transition hover:text-red-600">Выйти</button>
+                        </form>
+                </template>
+                <template v-else>
+                        <Link href="/login" class="font-rubik-light hover:opacity-80 transition">Вход</Link>
+                    
+                        <Link href="/register" class="font-rubik-light hover:opacity-80 transition">Регистрация</Link>
+                </template>
+                        </nav>
             <div class="flex flex-col gap-3 sm:gap-4">
                 <h3 class="font-rubik-medium text-white/90 mb-1">Связь</h3>
                 <a href="https://vk.com/hachiroku" target="_blank" rel="noopener noreferrer" class="font-rubik-light hover:opacity-80 transition">Наш VK</a>

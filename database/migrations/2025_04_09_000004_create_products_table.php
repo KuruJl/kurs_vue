@@ -18,8 +18,7 @@ return new class extends Migration
             $table->decimal('price', 10, 2);
             $table->text('description');
             $table->text('feature');
-            $table->string('image');
-            $table->boolean('in_stock')->default(true);
+            $table->integer('stock')->default(0); // Добавим после поля price
             $table->string('slug')->unique();
             $table->integer('quantity')->default(100)->unsigned();
             $table->timestamps();

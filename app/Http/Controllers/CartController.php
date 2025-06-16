@@ -4,42 +4,51 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Inertia\Inertia;
-use App\Models\Product; // Убедитесь, что модель Product импортирована
-use Illuminate\Support\Facades\Log; // Импортируем фасад Log
+use App\Models\Product;
+use Illuminate\Support\Facades\Log;
+use Inertia\Response;
 
 class CartController extends Controller
 {
     /**
      * Отображает содержимое корзины.
      */
-    public function index()
+    public function index(): Response
     {
         $cart = session()->get('cart', []);
         Log::info('Cart content from session (raw) on index page LOAD:', $cart);
         Log::info('Session ID on index page LOAD:', ['id' => session()->getId()]);
 
-        $cartDetails = [];
+        $detailedCartItems = [];
+        $total = 0;
+
         foreach ($cart as $id => $details) {
-            // Убедитесь, что все необходимые поля присутствуют
-            $cartDetails[] = [ // <--- ИЗМЕНЕНИЕ ЗДЕСЬ: используем [] для добавления как элемент массива
-                'id' => $id, // сохраняем ID внутри элемента, а не как ключ
-                'name' => $details['name'],
-                'image' => $details['image'],
-                'price' => $details['price'],
-                'quantity' => $details['quantity'],
-            ];
+            $product = Product::find($id); 
+            
+            if ($product) {
+                $imageUrl = $product->main_image_url; 
+                
+                $detailedCartItems[] = [
+                    'id' => $id,
+                    'name' => $product->name,
+                    'image' => $imageUrl,
+                    'price' => $product->price,
+                    'quantity' => $details['quantity'],
+                    'slug' => $product->slug, 
+                    'max_available' => $product->quantity_available, // Используем аксессор quantity_available
+                ];
+                $total += $product->price * $details['quantity'];
+            } else {
+                Log::warning("Product ID {$id} not found in database for cart, removing it from session.");
+                unset($cart[$id]);
+                session()->put('cart', $cart);
+                session()->flash('info', 'Один из товаров в вашей корзине больше недоступен и был удален.');
+            }
         }
-
-        // ОЧЕНЬ ВАЖНОЕ ИЗМЕНЕНИЕ:
-        // Используем array_values() чтобы гарантировать, что это будет числовой индексированный массив
-        // иначе JSON.encode преобразует его в объект, а Vue ожидает массив.
-        $cartForVue = array_values($cartDetails);
-
+        
         return Inertia::render('Cart', [
-            'cart' => $cartForVue, // Передаем теперь корректный массив
-            'total' => array_sum(array_map(function($item) {
-                return $item['price'] * $item['quantity'];
-            }, $cartForVue)), // Используем $cartForVue для подсчета total
+            'cart' => array_values($detailedCartItems),
+            'total' => $total,
         ]);
     }
 
@@ -48,55 +57,62 @@ class CartController extends Controller
      */
     public function store(Request $request)
     {
-        $request->validate([
-            'product_id' => 'required|exists:products,id',
-            'quantity' => 'required|integer|min:1',
-        ]);
+        try {
+            $validated = $request->validate([
+                'product_id' => 'required|exists:products,id',
+                'quantity' => 'required|integer|min:1|max:100'
+            ]);
 
-        // Находим продукт по ID. Аксессоры image_url и quantity_available
-        // будут автоматически доступны благодаря $appends в модели Product.
-        $product = Product::find($request->product_id);
+            $product = Product::findOrFail($validated['product_id']);
+            $cart = session()->get('cart', []);
+            
+            $currentQuantityInCart = $cart[$product->id]['quantity'] ?? 0;
+            $requestedQuantityToAdd = $validated['quantity'];
 
-        if (!$product) {
-             return redirect()->back()->withErrors(['message' => 'Товар не найден.']);
+            // ИСПРАВЛЕНИЕ: Используем аксессор quantity_available для проверки доступности
+            if ($product->quantity_available < ($currentQuantityInCart + $requestedQuantityToAdd)) {
+                return back()->withErrors([
+                    'message' => 'Недостаточно товара "' . $product->name . '" на складе. Доступно: ' . $product->quantity_available . '. В корзине: ' . $currentQuantityInCart
+                ])->withInput();
+            }
+
+            if (isset($cart[$product->id])) {
+                $cart[$product->id]['quantity'] += $requestedQuantityToAdd;
+            } else {
+                $cart[$product->id] = [
+                    "name" => $product->name,
+                    "quantity" => $requestedQuantityToAdd,
+                    "price" => $product->price,
+                    "image" => $product->main_image_url, 
+                    "max_available" => $product->quantity_available // ИСПРАВЛЕНИЕ: Используем аксессор quantity_available
+                ];
+            }
+
+            session()->put('cart', $cart);
+
+            Log::info('Product added to cart', [
+                'product_id' => $product->id,
+                'quantity_added' => $requestedQuantityToAdd,
+                'cart_item_new_quantity' => $cart[$product->id]['quantity'],
+                'cart_total_items_count' => count($cart),
+                'cart_total_units_count' => array_sum(array_column($cart, 'quantity'))
+            ]);
+
+            return back()->with([
+                'success' => 'Товар "' . $product->name . '" добавлен в корзину!',
+                'cartCount' => array_sum(array_column($cart, 'quantity'))
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Cart store error: ' . $e->getMessage(), [
+                'request_data' => $request->all(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return back()->withErrors([
+                'message' => 'Произошла ошибка при добавлении в корзину. Пожалуйста, попробуйте позже.'
+            ])->withInput();
         }
-
-        Log::info('Product found for cart (in store method):', [
-            'id' => $product->id,
-            'name' => $product->name,
-            'image_url' => $product->image_url,
-            'quantity_available' => $product->quantity_available,
-        ]);
-
-        $cart = session()->get('cart', []);
-        Log::info('Cart BEFORE update in store:', $cart); // Логируем корзину до добавления
-
-        // Проверяем наличие на складе перед добавлением
-        $currentQuantityInCart = isset($cart[$product->id]) ? $cart[$product->id]['quantity'] : 0;
-        if ($product->quantity_available < ($request->quantity + $currentQuantityInCart)) {
-             return redirect()->back()->withErrors([
-                 'message' => 'Недостаточно товара на складе. Доступно: ' . $product->quantity_available
-             ]);
-        }
-
-        if (isset($cart[$product->id])) {
-            // Товар уже в корзине, увеличиваем количество
-            $cart[$product->id]['quantity'] += $request->quantity;
-        } else {
-            // Товар еще не в корзине, добавляем его
-            $cart[$product->id] = [
-                "name" => $product->name,
-                "quantity" => $request->quantity,
-                "price" => $product->price,
-                "image" => $product->image_url, // Используем аксессор, который теперь должен быть корректным
-            ];
-        }
-
-        session()->put('cart', $cart); // Сохраняем обновленную корзину в сессии
-        Log::info('Cart AFTER update in store:', $cart); // Логируем корзину после добавления
-        Log::info('Session ID AFTER store (should be the same):', ['id' => session()->getId()]); // Логируем ID сессии
-
-        return redirect()->back()->with('success', 'Товар успешно добавлен в корзину!');
     }
 
     /**
@@ -104,30 +120,63 @@ class CartController extends Controller
      */
     public function update(Request $request, $id)
     {
-        $request->validate([
-            'quantity' => 'required|integer|min:0', // Количество может быть 0 для удаления
-        ]);
+        try {
+            $request->validate([
+                'quantity' => 'required|integer|min:0',
+            ]);
 
-        $cart = session()->get('cart');
+            $cart = session()->get('cart', []);
+            $product = Product::find($id);
 
-        if (isset($cart[$id])) {
-            if ($request->quantity > 0) {
-                // Проверка на наличие на складе при обновлении
-                $product = Product::find($id);
-                if ($product && $product->quantity_available < $request->quantity) {
-                    return redirect()->back()->withErrors(['message' => 'Недостаточно товара на складе для обновления. Доступно: ' . $product->quantity_available]);
+            if (!$product) {
+                if (isset($cart[$id])) {
+                    unset($cart[$id]);
+                    session()->put('cart', $cart);
+                    session()->flash('error', 'Товар не найден и удален из корзины.');
+                } else {
+                    session()->flash('info', 'Товар уже отсутствовал в корзине.');
                 }
-                $cart[$id]['quantity'] = $request->quantity;
-                session()->put('cart', $cart);
-                session()->flash('success', 'Корзина обновлена!');
-            } else {
-                // Если количество 0, удаляем товар
-                unset($cart[$id]);
-                session()->put('cart', $cart);
-                session()->flash('success', 'Товар удален из корзины!');
+                return redirect()->back();
             }
+
+            if (isset($cart[$id])) {
+                $requestedQuantity = $request->quantity;
+
+                if ($requestedQuantity > 0) {
+                    // ИСПРАВЛЕНИЕ: Используем аксессор quantity_available для проверки доступности
+                    if ($product->quantity_available < $requestedQuantity) {
+                        return redirect()->back()->withErrors(['message' => 'Недостаточно товара на складе для обновления. Доступно: ' . $product->quantity_available]);
+                    }
+                    $cart[$id]['quantity'] = $requestedQuantity;
+                    // ИСПРАВЛЕНИЕ: Обновляем max_available, используя аксессор quantity_available
+                    $cart[$id]['max_available'] = $product->quantity_available; 
+                    session()->put('cart', $cart);
+                    session()->flash('success', 'Количество товара "' . $product->name . '" обновлено.');
+                } else {
+                    unset($cart[$id]);
+                    session()->put('cart', $cart);
+                    session()->flash('success', 'Товар "' . $product->name . '" удален из корзины!');
+                }
+            } else {
+                session()->flash('info', 'Товар не найден в корзине для обновления.');
+            }
+            
+            Log::info('Cart item updated', [
+                'product_id' => $id,
+                'new_quantity' => $request->quantity,
+                'cart_total_units_count' => array_sum(array_column($cart, 'quantity'))
+            ]);
+
+            return redirect()->back();
+
+        } catch (\Exception $e) {
+            Log::error('Cart update error: ' . $e->getMessage(), [
+                'product_id' => $id,
+                'request_data' => $request->all(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            return back()->withErrors(['message' => 'Произошла ошибка при обновлении корзины. Пожалуйста, попробуйте позже.']);
         }
-        return redirect()->back();
     }
 
     /**
@@ -135,13 +184,33 @@ class CartController extends Controller
      */
     public function remove($id)
     {
-        $cart = session()->get('cart');
+        try {
+            $cart = session()->get('cart', []);
+            $productName = 'товар';
 
-        if (isset($cart[$id])) {
-            unset($cart[$id]);
-            session()->put('cart', $cart);
-            session()->flash('success', 'Товар удален из корзины!');
+            if (isset($cart[$id])) {
+                $product = Product::find($id);
+                if ($product) {
+                    $productName = $product->name;
+                }
+                unset($cart[$id]);
+                session()->put('cart', $cart);
+                session()->flash('success', 'Товар "' . $productName . '" удален из корзины!');
+
+                Log::info('Cart item removed', [
+                    'product_id' => $id,
+                    'cart_total_units_count' => array_sum(array_column($cart, 'quantity'))
+                ]);
+            } else {
+                session()->flash('info', 'Товар уже был удален или не найден в корзине.');
+            }
+            return redirect()->back();
+        } catch (\Exception $e) {
+            Log::error('Cart remove error: ' . $e->getMessage(), [
+                'product_id' => $id,
+                'trace' => $e->getTraceAsString()
+            ]);
+            return back()->withErrors(['message' => 'Произошла ошибка при удалении товара из корзины. Пожалуйста, попробуйте позже.']);
         }
-        return redirect()->back();
     }
 }

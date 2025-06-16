@@ -21,7 +21,6 @@ class User extends Authenticatable
         'remember_token',
     ];
 
-    // Связь с корзиной пользователя
     
 
     // Связь с заказами пользователя

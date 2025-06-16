@@ -30,7 +30,9 @@ class HandleInertiaRequests extends Middleware
                     'id' => $request->user()->id,
                     'name' => $request->user()->name,
                     'email' => $request->user()->email,
-                    // Добавь здесь любые другие поля пользователя, которые тебе нужны на фронтенде
+                    // !!! ДОБАВИТЬ ЭТУ СТРОКУ !!!
+                    // Предполагаем, что колонка 'is_admin' есть в таблице users
+                    'is_admin' => (bool) $request->user()->is_admin,
                 ] : null,
             ],
             'flash' => [
@@ -38,12 +40,7 @@ class HandleInertiaRequests extends Middleware
                 'success' => fn () => $request->session()->get('success'),
                 'error' => fn () => $request->session()->get('error'),
             ],
-            // Если ты используешь Ziggy, он обычно добавляется здесь, но мы его убираем.
-            // 'ziggy' => function () use ($request) {
-            //     return array_merge((new Ziggy)->toArray(), [
-            //         'location' => $request->url(),
-            //     ]);
-            // },
+            // 'ziggy' => fn () => (new Ziggy)->toArray(), // Если используете Ziggy, раскомментируйте
         ]);
     }
 }

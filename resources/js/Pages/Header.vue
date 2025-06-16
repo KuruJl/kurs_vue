@@ -12,7 +12,11 @@
                 <li><Link href="/support" class="font-rubik-light hover:opacity-80 transition">поддержка</Link></li>
                 <li><Link href="/cart" class="font-rubik-light hover:opacity-80 transition">корзина</Link></li>
                 <li><Link href="/profile" class="font-rubik-light hover:opacity-80 transition">профиль</Link></li>
-                
+                <li>
+                    <Link v-if="$page.props.auth.user && $page.props.auth.user.is_admin" href="/admin/products" class="nav-link font-rubik-light">
+    Админ-панель
+</Link>
+</li>       
                 <template v-if="user">
                     <li>
                         <form @submit.prevent="logout">
@@ -30,16 +34,35 @@
                 </template>
             </ul>
         </div>
+        <div v-if="flash.success" class="fixed top-4 right-4 bg-green-500 text-white px-4 py-2 rounded z-50">
+        {{ flash.success }}
+    </div>
+    <div v-if="flash.error" class="fixed top-4 right-4 bg-red-500 text-white px-4 py-2 rounded z-50">
+        {{ flash.error }}
+    </div>
     </header>
+    
 </template>
 
 <script setup>
-import { usePage, Link } from '@inertiajs/vue3';
-import { computed } from 'vue';
-import { router } from '@inertiajs/vue3';
+import { usePage, Link, router } from '@inertiajs/vue3';
+import { computed, watch, ref } from 'vue';
 
+// Сначала инициализируем page
 const page = usePage();
+
+// Затем используем page для вычисляемых свойств
 const user = computed(() => page.props.auth.user);
+const flash = computed(() => page.props.flash);
+
+// И только потом watch
+watch(flash, (newVal) => {
+    if (newVal?.success || newVal?.error) {
+        setTimeout(() => {
+            page.props.flash = {};
+        }, 1500);
+    }
+}, { deep: true });
 
 const logout = () => {
     router.post('/logout');

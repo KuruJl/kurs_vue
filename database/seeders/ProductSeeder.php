@@ -31,12 +31,16 @@ class ProductSeeder extends Seeder
                 Размеры: 392x141x44мм
                 Вес: 1010г
                 Наличие Hot-Swap: да',
-                'image' => 'https://i.ibb.co/jvrJ2HNL/image-3.png', // Обновите путь к изображению
-                'in_stock' => true,
+                'stock' => true,
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
-            
+            $product1->images()->createMany([
+                ['path' => '/images/superonemain1.png', 'is_main' => true],
+                ['path' => '/images/superone1.png', 'is_main' => false],
+                ['path' => '/images/superone12.png', 'is_main' => false],
+                ['path' => '/images/superone13.png', 'is_main' => false],
+            ]);
             $product2 = Product::create([
                 'category_id' => $mouseCategory->id,
                 'name' => 'Hachiroku one',
@@ -46,17 +50,18 @@ class ProductSeeder extends Seeder
                 'feature' => 'Тип подключения: Беспроводная
                 Формат: 98%
                 Размеры: 392x141x44мм
-                Вес: 1010г
+                Вес: 110г
                 Наличие Hot-Swap: да',
-                'image' => 'https://i.ibb.co/PZR5L7md/image-14.png  ', // Обновите путь к изображению
-                'in_stock' => true,
+                'stock' => true,
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
-
-            
-
-            
+            $product2->images()->createMany([
+                ['path' => '/images/mousemain1.png', 'is_main' => true],
+                ['path' => '/images/mouse1.png', 'is_main' => false],
+                ['path' => '/images/mouse12.png', 'is_main' => false],
+                ['path' => '/images/mouse13.png', 'is_main' => false],
+            ]);
         } else {
             $this->command->warn('Категория "mice" не найдена. Убедитесь, что CategorySeeder запущен.');
         }       
@@ -76,12 +81,16 @@ class ProductSeeder extends Seeder
                 Вес: 1010г
                 Наличие Hot-Swap: да',
                 'price' => 8999,
-                'image' => 'https://i.ibb.co/QjKc7B5H/image-9.png', // Обновите путь к изображению
-                'in_stock' => true,
+                'stock' => true,
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
-           
+            $product3->images()->createMany([
+                ['path' => '/images/spacemain.png', 'is_main' => true],
+                ['path' => '/images/space1.png', 'is_main' => false],
+                ['path' => '/images/space2.png', 'is_main' => false],
+                ['path' => '/images/space3.png', 'is_main' => false],
+            ]);
             $product4 = Product::create([
                 'category_id' => $keyboardCategory->id,
                 'name' => 'hachiroku moonlight',
@@ -93,12 +102,16 @@ class ProductSeeder extends Seeder
                 Размеры: 392x141x44мм
                 Вес: 1010г
                 Наличие Hot-Swap: да',
-                'image' => 'https://i.ibb.co/qL0wWbdC/image-15.png', // Обновите путь к изображению
-                'in_stock' => true,
+                'stock' => true,
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
-            
+            $product4->images()->createMany([
+                ['path' => '/images/moonlightmain.png', 'is_main' => true],
+                ['path' => '/images/moonlightmain1.png', 'is_main' => false],
+                ['path' => '/images/moonlightmain12.png', 'is_main' => false],
+                ['path' => '/images/moonlightmain13.png', 'is_main' => false],
+            ]);
         } else {
             $this->command->warn('Категория "keyboards" не найдена. Убедитесь, что CategorySeeder запущен.');
         }      
@@ -117,14 +130,17 @@ class ProductSeeder extends Seeder
                 Формат: 98%
                 Размеры: 392x141x44мм
                 Вес: 1010г
-                Наличие Hot-Swap: да',
-                'image' => 'https://i.ibb.co/wZF7xKjN/image-24.png', // Обновите путь к изображению
-                
-                'in_stock' => true,
+                Наличие Hot-Swap: да',                
+                'stock' => true,
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
-          
+            $product5->images()->createMany([
+                ['path' => '/images/nightmain1.png', 'is_main' => true],
+                ['path' => '/images/night1.png', 'is_main' => false],
+                ['path' => '/images/night12.png', 'is_main' => false],
+                ['path' => '/images/night13.png', 'is_main' => false],
+            ]);
             $product6 = Product::create([
                 'category_id' => $headphoneCategory->id,
                 'name' => 'Hachiroku loud',
@@ -136,12 +152,16 @@ class ProductSeeder extends Seeder
                 Размеры: 392x141x44мм
                 Вес: 1010г
                 Наличие Hot-Swap: да',
-                'image' => 'https://i.ibb.co/sppmb5Jy/image-27.png', // Обновите путь к изображению
-                'in_stock' => true,
+                'stock' => true,
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
-         
+            $product6->images()->createMany([
+                ['path' => '/images/loudmain.png', 'is_main' => true],
+                ['path' => '/images/loud1.png', 'is_main' => false],
+                ['path' => '/images/loud12.png', 'is_main' => false],
+                ['path' => '/images/loud13.png', 'is_main' => false],
+            ]);
         } else {
             $this->command->warn('Категория "keyboards" не найдена. Убедитесь, что CategorySeeder запущен.');
         }      
@@ -160,12 +180,16 @@ class ProductSeeder extends Seeder
                 Размеры: 392x141x44мм
                 Вес: 1010г
                 Наличие Hot-Swap: да',
-                'image' => 'https://i.ibb.co/DDy8g6mY/image-18.png', // Обновите путь к изображению
-                'in_stock' => true,
+                'stock' => true,
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
-          
+            $product7->images()->createMany([
+                ['path' => '/images/mousepadredmain1.png', 'is_main' => true],
+                ['path' => '/images/mousepadred1.png', 'is_main' => false],
+                ['path' => '/images/mousepadred12.png', 'is_main' => false],
+                ['path' => '/images/mousepadred13.png', 'is_main' => false],
+            ]);
             $product8 = Product::create([
                  'category_id' => $carpetCategory->id,
                 'name' => 'Hachiroku mousepad-blue',
@@ -177,12 +201,16 @@ class ProductSeeder extends Seeder
                 Размеры: 392x141x44мм
                 Вес: 1010г
                 Наличие Hot-Swap: да',
-                'image' => 'https://i.ibb.co/qL0wWbdC/image-15.png', // Обновите путь к изображению
-                'in_stock' => true,
+                'stock' => true,
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
-         
+            $product8->images()->createMany([
+                ['path' => '/images/mousepad-bluemain.png', 'is_main' => true],
+                ['path' => '/images/mouseblue1.png', 'is_main' => false],
+                ['path' => '/images/mouseblue12.png', 'is_main' => false],
+                ['path' => '/images/mouseblue13.png', 'is_main' => false],
+            ]);
         } else {
             $this->command->warn('Категория "keyboards" не найдена. Убедитесь, что CategorySeeder запущен.');
         }     

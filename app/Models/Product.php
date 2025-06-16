@@ -4,6 +4,8 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Product extends Model
 {
@@ -14,41 +16,58 @@ class Product extends Model
         'name',
         'price',
         'description',
-        'image',
-        'in_stock',
-        'quantity',
+        // 'in_stock', // Если это поле не используется, можно удалить
+        'quantity', // Это поле, которое теперь будет для доступного количества
         'slug',
         'feature',
+        'stock', // Если это поле не используется для количества, подумайте о его удалении из БД и fillable
     ];
 
-    protected $appends = ['image_url', 'quantity_available', 'is_in_stock'];
+    // Убедитесь, что 'stock' есть в $fillable, чтобы его можно было массово назначать.
+    // Если хотите использовать 'quantity_available' и 'is_in_stock' как аксессоры
+    // для 'stock', то оставляем их в $appends.
+    protected $appends = ['quantity_available', 'is_in_stock', 'main_image_url']; 
 
     public function category()
     {
         return $this->belongsTo(Category::class);
     }
 
-    public function orders()
+    public function orderItems(): HasMany
     {
-        return $this->belongsToMany(Order::class, 'order_items')
-                    ->withPivot('quantity', 'price')
-                    ->withTimestamps();
+        return $this->hasMany(OrderItem::class);
     }
 
-    public function getImageUrlAttribute(): string
+    public function images(): HasMany
     {
-        return $this->image ? asset('storage/' . $this->image) : asset('images/default_product.png');
+        return $this->hasMany(ProductImage::class);
     }
 
+    public function mainImage(): HasOne
+    {
+        return $this->hasOne(ProductImage::class)->where('is_main', true);
+    }
+
+    public function getMainImageUrlAttribute(): string
+    {
+        if ($this->mainImage) {
+            return asset($this->mainImage->path);
+        }
+        if ($this->images->isNotEmpty()) {
+            return asset($this->images->first()->path);
+        }
+        return asset('images/default_product.png');
+    }
+
+    // Аксессор, который будет возвращать текущее количество на складе
     public function getQuantityAvailableAttribute(): int
     {
-        return (int) ($this->attributes['quantity'] ?? 0);
+        return (int) ($this->attributes['quantity'] ?? 0); 
     }
 
+    // ИСПРАВЛЕНИЕ: is_in_stock теперь также будет зависеть от поля 'quantity'
     public function getIsInStockAttribute(): bool
     {
-        $inStock = (bool) ($this->attributes['in_stock'] ?? false);
-        $quantity = (int) ($this->attributes['quantity'] ?? 0);
-        return $inStock && $quantity > 0;
+        return (int) ($this->attributes['quantity'] ?? 0) > 0;
     }
 }
