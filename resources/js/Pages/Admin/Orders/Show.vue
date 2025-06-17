@@ -1,6 +1,5 @@
 <script setup>
-// import { defineProps, ref } from 'vue'; // Можно убрать defineProps
-import { ref } from 'vue'; // ref нужен, если используется
+import { ref } from 'vue';
 import { Head, Link, useForm } from '@inertiajs/vue3';
 
 const props = defineProps({
@@ -8,29 +7,23 @@ const props = defineProps({
   availableStatuses: Array, // Это массив английских ключей статусов для <select>
 });
 
-// ИСПРАВЛЕНИЕ: Безопасная инициализация формы.
-// Если props.order существует, используем его статус, иначе - 'pending' (или любой другой статус по умолчанию).
-// ВАЖНО: для useForm.status мы используем **английский** ключ статуса,
-// так как именно его мы отправляем на бэкенд.
-const form = useForm({
-  status: props.order ? getEnglishStatusKey(props.order.status) : 'pending', 
-});
+// --- ПЕРЕМЕЩЕНЫ ФУНКЦИИ ВВЕРХ ---
 
-const updateOrderStatus = () => {
-  form.put(`/admin/orders/${props.order.id}/update-status`, {
-    onSuccess: () => {
-      // После успешного обновления, Inertia обновит пропсы,
-      // и компонент сам перерендерится с новым переведенным статусом.
-      // Поэтому здесь напрямую обновлять form.status не нужно.
-      // Если это не происходит автоматически, проверьте, что ваш контроллер
-      // возвращает полную Inertia::render страницу после успешного обновления.
-    },
-    onError: (errors) => {
-      console.error('Ошибка обновления статуса:', errors);
-      // Если есть ошибка, статус в форме остается старым или отображает ошибку
-    },
-  });
+// Вспомогательная функция для получения английского ключа из русского перевода
+// Это нужно для того, чтобы selected value в <select> соответствовало английскому ключу.
+// Вам нужно будет убедиться, что `availableStatuses` в вашем контроллере
+// по-прежнему передаются как английские ключи (pending, processing и т.д.).
+const getEnglishStatusKey = (translatedStatus) => {
+  switch (translatedStatus) {
+    case 'В ожидании': return 'pending';
+    case 'В обработке': return 'processing';
+    case 'Отправлен': return 'shipped';
+    case 'Доставлен': return 'delivered';
+    case 'Отменен': return 'cancelled';
+    default: return translatedStatus; // Если не найдено, возвращаем как есть (на случай если это уже англ. ключ)
+  }
 };
+
 const getTranslatedStatus = (statusKey) => {
   switch (statusKey) {
     case 'pending': return 'В ожидании';
@@ -41,8 +34,13 @@ const getTranslatedStatus = (statusKey) => {
     default: return statusKey;
   }
 };
+
 // Функция для получения класса цвета статуса
 const getStatusColorClass = (status) => {
+  // Важно: здесь `order.status` приходит уже переведенным на русский
+  // (если вы не изменили OrderController, чтобы он возвращал английский ключ).
+  // Поэтому функция getStatusColorClass должна работать с русскими статусами.
+  // Если ваш OrderController возвращает английские ключи, то здесь нужно использовать getTranslatedStatus(status).
   switch (status) {
     case 'В ожидании':
       return 'bg-blue-100 text-blue-800';
@@ -59,19 +57,28 @@ const getStatusColorClass = (status) => {
   }
 };
 
-// Вспомогательная функция для получения английского ключа из русского перевода
-// Это нужно для того, чтобы selected value в <select> соответствовало английскому ключу.
-// Вам нужно будет убедиться, что `availableStatuses` в вашем контроллере
-// по-прежнему передаются как английские ключи (pending, processing и т.д.).
-const getEnglishStatusKey = (translatedStatus) => {
-  switch (translatedStatus) {
-    case 'В ожидании': return 'pending';
-    case 'В обработке': return 'processing';
-    case 'Отправлен': return 'shipped';
-    case 'Доставлен': return 'delivered';
-    case 'Отменен': return 'cancelled';
-    default: return translatedStatus; // Если не найдено, возвращаем как есть (на случай если это уже англ. ключ)
-  }
+// ИСПРАВЛЕНИЕ: Безопасная инициализация формы.
+// Если props.order существует, используем его статус, иначе - 'pending' (или любой другой статус по умолчанию).
+// ВАЖНО: для useForm.status мы используем **английский** ключ статуса,
+// так как именно его мы отправляем на бэкенд.
+const form = useForm({
+  // Теперь getEnglishStatusKey доступен
+  status: props.order ? getEnglishStatusKey(props.order.status) : 'pending',
+});
+
+const updateOrderStatus = () => {
+  form.put(`/admin/orders/${props.order.id}/update-status`, {
+    onSuccess: () => {
+      // После успешного обновления, Inertia обновит пропсы,
+      // и компонент сам перерендерится с новым переведенным статусом.
+      // Если это не происходит автоматически, проверьте, что ваш контроллер
+      // возвращает полную Inertia::render страницу после успешного обновления.
+    },
+    onError: (errors) => {
+      console.error('Ошибка обновления статуса:', errors);
+      // Если есть ошибка, статус в форме остается старым или отображает ошибку
+    },
+  });
 };
 </script>
 
@@ -147,8 +154,8 @@ const getEnglishStatusKey = (translatedStatus) => {
                 class="mt-1 block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
               >
               <option v-for="statusKey in availableStatuses" :key="statusKey" :value="statusKey">
-  {{ getTranslatedStatus(statusKey) }}
-</option>
+                {{ getTranslatedStatus(statusKey) }}
+              </option>
               </select>
               <button
                 type="submit"

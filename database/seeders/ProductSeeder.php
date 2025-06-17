@@ -31,7 +31,6 @@ class ProductSeeder extends Seeder
                 Размеры: 392x141x44мм
                 Вес: 1010г
                 Наличие Hot-Swap: да',
-                'stock' => true,
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
@@ -52,7 +51,6 @@ class ProductSeeder extends Seeder
                 Размеры: 392x141x44мм
                 Вес: 110г
                 Наличие Hot-Swap: да',
-                'stock' => true,
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
@@ -81,7 +79,6 @@ class ProductSeeder extends Seeder
                 Вес: 1010г
                 Наличие Hot-Swap: да',
                 'price' => 8999,
-                'stock' => true,
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
@@ -102,7 +99,6 @@ class ProductSeeder extends Seeder
                 Размеры: 392x141x44мм
                 Вес: 1010г
                 Наличие Hot-Swap: да',
-                'stock' => true,
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
@@ -131,7 +127,6 @@ class ProductSeeder extends Seeder
                 Размеры: 392x141x44мм
                 Вес: 1010г
                 Наличие Hot-Swap: да',                
-                'stock' => true,
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
@@ -152,7 +147,6 @@ class ProductSeeder extends Seeder
                 Размеры: 392x141x44мм
                 Вес: 1010г
                 Наличие Hot-Swap: да',
-                'stock' => true,
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
@@ -180,7 +174,6 @@ class ProductSeeder extends Seeder
                 Размеры: 392x141x44мм
                 Вес: 1010г
                 Наличие Hot-Swap: да',
-                'stock' => true,
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
@@ -201,7 +194,6 @@ class ProductSeeder extends Seeder
                 Размеры: 392x141x44мм
                 Вес: 1010г
                 Наличие Hot-Swap: да',
-                'stock' => true,
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);

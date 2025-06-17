@@ -18,7 +18,6 @@ return new class extends Migration
             $table->timestamp('email_verified_at')->nullable();
             $table->string('phone')->nullable(); // для заказов
             $table->string('password');
-            
             $table->rememberToken();
             $table->timestamps();
         });

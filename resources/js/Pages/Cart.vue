@@ -14,27 +14,31 @@ const props = defineProps({
         type: Number,
         default: 0,
     },
+    // Возможно, у вас уже есть глобальный cartCount через HandleInertiaRequests,
+    // но если нет, можете добавить его сюда, если контроллер его возвращает
+    // cartCount: {
+    //     type: Number,
+    //     default: 0,
+    // }
 });
+
 const submitOrder = () => {
     router.post('/checkout', {}, {
         preserveScroll: true,
         onSuccess: (page) => {
-            // Проверяем, есть ли ошибка во flash-сообщениях
             if (page.props.flash && page.props.flash.error) {
                 console.error('Ошибка оформления заказа (с сервера):', page.props.flash.error);
-                // Здесь вы можете показать пользователю сообщение об ошибке
-                // Например, через alert или свой компонент для сообщений
                 alert(page.props.flash.error);
             } else {
                 console.log('Заказ успешно оформлен!', page.props.flash.success);
-                // Здесь можно также показывать success-сообщение
                 alert(page.props.flash.success);
+                // После успешного заказа, можно обновить страницу, чтобы корзина очистилась на фронте
+                // Этот визит к cart.index обновит пропсы и покажет пустую корзину.
+                router.visit(route('cart.index'), { preserveScroll: true, preserveState: false });
             }
         },
         onError: (errors) => {
             console.error('Ошибка оформления заказа (Inertia/валидация):', errors);
-            // errors здесь будет объектом с ошибками валидации или общими ошибками
-            // Если есть 'message' или 'cart' ошибки
             if (errors.message) {
                 alert(errors.message);
             } else if (errors.cart) {
@@ -45,6 +49,7 @@ const submitOrder = () => {
         }
     });
 };
+
 // Форматирование цены
 const formatPrice = (value) => {
     if (value === undefined || value === null) return '0';
@@ -55,27 +60,52 @@ const formatPrice = (value) => {
 };
 
 // Обновление количества
-const updateQuantity = (id, newQuantity) => {
-    if (newQuantity < 1) return;
-    router.patch(`/cart/${id}`, { quantity: newQuantity }, {
+const updateQuantity = (productId, newQuantity) => {
+    if (newQuantity < 0) return; // Можно разрешить 0 для удаления
+    router.patch(route('cart.update', productId), { quantity: newQuantity }, {
+        // preserveState: true не нужен, если контроллер перенаправляет на ту же страницу
+        // Inertia автоматически получит новые пропсы.
         preserveScroll: true,
-        preserveState: true,
+        onSuccess: () => {
+            const flash = usePage().props.flash;
+            if (flash.success) {
+                // alert(flash.success); // Обычно не нужно, если страница обновится
+            } else if (flash.info) {
+                // alert(flash.info);
+            }
+        },
         onError: (errors) => {
             console.error('Ошибка обновления количества:', errors);
-            alert('Не удалось обновить количество. Попробуйте снова.');
+            if (errors.message) {
+                alert(errors.message);
+            } else {
+                alert('Не удалось обновить количество. Попробуйте снова.');
+            }
         },
     });
 };
 
 // Удаление товара
-const removeItem = (id) => {
+const removeItem = (productId) => {
     if (!confirm('Удалить этот товар из корзины?')) return;
-    router.delete(`/cart/${id}/remove`, {
+    router.delete(route('cart.remove', productId), {
+        // preserveState: true не нужен, если контроллер перенаправляет на ту же страницу
         preserveScroll: true,
-        preserveState: true,
+        onSuccess: () => {
+            const flash = usePage().props.flash;
+            if (flash.success) {
+                // alert(flash.success);
+            } else if (flash.info) {
+                // alert(flash.info);
+            }
+        },
         onError: (errors) => {
             console.error('Ошибка удаления товара:', errors);
-            alert('Не удалось удалить товар. Попробуйте снова.');
+            if (errors.message) {
+                alert(errors.message);
+            } else {
+                alert('Не удалось удалить товар. Попробуйте снова.');
+            }
         },
     });
 };
@@ -104,7 +134,6 @@ const isCartEmpty = computed(() => props.cart.length === 0);
             <div v-else class="flex flex-col gap-6">
                 <div v-for="item in props.cart" :key="item.id"
                      class="flex flex-col sm:flex-row items-start sm:items-center p-4 sm:p-6 rounded-xl border border-white/30 bg-blue-600/10 gap-4 sm:gap-6">
-                    <!-- Контейнер для изображения -->
                     <div class="w-full sm:w-32 sm:h-32 flex-shrink-0">
                         <div class="relative w-full h-full rounded-md overflow-hidden bg-gray-900/50">
                             <img :src="item.image || '/images/default_product.png'" :alt="item.name || 'Товар'"
@@ -112,9 +141,7 @@ const isCartEmpty = computed(() => props.cart.length === 0);
                         </div>
                     </div>
 
-                    <!-- Контент -->
                     <div class="flex flex-1 flex-col sm:flex-row items-start sm:items-center w-full gap-4 sm:gap-6">
-                        <!-- Название и цена -->
                         <div class="flex flex-col flex-1">
                             <h3 class="font-rubik-semibold text-xl sm:text-2xl text-white">{{ item.name || 'Без названия' }}</h3>
                             <div class="font-rubik-semibold text-xl sm:text-2xl text-white/80 mt-2">
@@ -122,9 +149,7 @@ const isCartEmpty = computed(() => props.cart.length === 0);
                             </div>
                         </div>
 
-                        <!-- Кнопки (статичные, выровненные вправо) -->
-                        <div class="flex flex-col items-end gap-4  sm:w-40 ">
-                            <!-- Количество -->
+                        <div class="flex flex-col items-end gap-4 sm:w-40 ">
                             <div class="flex items-center gap-2">
                                 <button type="button"
                                         @click="updateQuantity(item.id, item.quantity - 1)"
@@ -136,13 +161,13 @@ const isCartEmpty = computed(() => props.cart.length === 0);
                                 <span class="font-rubik-semibold text-xl text-white w-12 text-center">{{ item.quantity }}</span>
                                 <button type="button"
                                         @click="updateQuantity(item.id, item.quantity + 1)"
+                                        :disabled="item.quantity >= item.max_available"
                                         aria-label="Увеличить количество"
-                                        class="w-8 h-8 bg-white text-black rounded-sm flex items-center justify-center hover:bg-gray-200 transition">
+                                        class="w-8 h-8 bg-white text-black rounded-sm flex items-center justify-center hover:bg-gray-200 transition disabled:opacity-50 disabled:cursor-not-allowed">
                                     <span class="text-xl font-bold">+</span>
                                 </button>
                             </div>
 
-                            <!-- Удаление -->
                             <button type="button"
                                     @click="removeItem(item.id)"
                                     aria-label="Удалить товар"
@@ -155,17 +180,16 @@ const isCartEmpty = computed(() => props.cart.length === 0);
                     </div>
                 </div>
 
-                <!-- Итог и кнопка -->
                 <div class="flex justify-end mt-8 sm:mt-12">
                     <div class="flex flex-col items-end gap-4">
                         <div class="font-rubik-semibold text-2xl sm:text-3xl text-white">
                             Итого: {{ formatPrice(props.total) }} ₽
                         </div>
                         <button @click="submitOrder"
-        class="mt-6  font-rubik-semibold inline-block bg-white hover:bg-pink-200 transition-colors
-               text-black font-rubik-bold text-lg sm:text-xl px-8 py-3 rounded-lg">
-    Оформить заказ
-</button>
+                                class="mt-6 font-rubik-semibold inline-block bg-white hover:bg-pink-200 transition-colors
+                                       text-black font-rubik-bold text-lg sm:text-xl px-8 py-3 rounded-lg">
+                            Оформить заказ
+                        </button>
                     </div>
                 </div>
             </div>

@@ -31,8 +31,8 @@
         // Маршруты корзины
         Route::get('/cart', [CartController::class, 'index'])->name('cart.index');
         Route::post('/cart', [CartController::class, 'store'])->name('cart.store');
-            Route::patch('/cart/{id}', [CartController::class, 'update'])->name('cart.update');
-        Route::delete('/cart/{id}/remove', [CartController::class, 'remove'])->name('cart.remove');                                                     
+        Route::patch('/cart/{product}', [CartController::class, 'update'])->name('cart.update');
+        Route::delete('/cart/{product}/remove', [CartController::class, 'remove'])->name('cart.remove');                                                    
 
         // Маршрут для оформления заказа
         Route::post('/checkout', [OrderController::class, 'store'])
@@ -52,15 +52,15 @@ Route::get('/profile/orders', [OrderController::class, 'index'])
         Route::get('/products/{product}/edit', [\App\Http\Controllers\Admin\ProductController::class, 'edit'])->name('admin.products.edit');
         Route::put('/products/{product}', [\App\Http\Controllers\Admin\ProductController::class, 'update'])->name('admin.products.update');
         Route::delete('/products/{product}', [\App\Http\Controllers\Admin\ProductController::class, 'destroy'])->name('admin.products.destroy');
+
+            // Роут для списка всех заказов
+            Route::get('/orders', [AdminOrderController::class, 'index'])->name('orders.index');
+            // Роут для просмотра деталей конкретного заказа
+            Route::get('/orders/{order}', [AdminOrderController::class, 'show'])->name('orders.show');
+            // Роут для обновления статуса заказа (используем PUT метод)
+            Route::put('/orders/{order}/update-status', [AdminOrderController::class, 'updateStatus'])->name('orders.updateStatus');
     });
-    Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () {
-        // Роут для списка всех заказов
-        Route::get('/orders', [AdminOrderController::class, 'index'])->name('orders.index');
-        // Роут для просмотра деталей конкретного заказа
-        Route::get('/orders/{order}', [AdminOrderController::class, 'show'])->name('orders.show');
-        // Роут для обновления статуса заказа (используем PUT метод)
-        Route::put('/orders/{order}/update-status', [AdminOrderController::class, 'updateStatus'])->name('orders.updateStatus');
-    });
+    
     // Маршрут для страницы каталога
     Route::get('/catalog', [ProductController::class, 'index'])->name('catalog');
 

@@ -11,6 +11,13 @@ use Illuminate\Validation\Rule; // Для валидации статуса
 
 class OrderController extends Controller
 {
+
+  public function __construct()
+    {
+        // ПРАВИЛЬНЫЙ СПОСОБ использования уже зарегистрированного middleware 'is_admin'
+        // Этот middleware (App\Http\Middleware\CheckAdmin) уже содержит логику проверки прав администратора.
+        $this->middleware('is_admin');
+    }
     // Список доступных статусов заказа.
     // Рекомендуется вынести это в Enum (если Laravel 9+) или отдельный файл конфигурации
     // для большей чистоты и возможности перевода.

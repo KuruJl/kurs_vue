@@ -20,7 +20,6 @@ class Product extends Model
         'quantity', // Это поле, которое теперь будет для доступного количества
         'slug',
         'feature',
-        'stock', // Если это поле не используется для количества, подумайте о его удалении из БД и fillable
     ];
 
     // Убедитесь, что 'stock' есть в $fillable, чтобы его можно было массово назначать.
@@ -31,6 +30,11 @@ class Product extends Model
     public function category()
     {
         return $this->belongsTo(Category::class);
+    }
+
+    public function cartItems()
+    {
+        return $this->hasMany(CartItem::class);
     }
 
     public function orderItems(): HasMany

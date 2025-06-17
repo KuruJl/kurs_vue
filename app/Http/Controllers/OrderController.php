@@ -5,65 +5,69 @@ namespace App\Http\Controllers;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Product;
+use App\Services\CartService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Auth;
+use Inertia\Inertia;
+
 class OrderController extends Controller
 {
-    /**
-     * Обрабатывает создание нового заказа.
-     * @param  \Illuminate\Http\Request  $request
-     * @return \Illuminate\Http\RedirectResponse
-     */
+    protected $cartService;
+
+    public function __construct(CartService $cartService)
+    {
+        $this->cartService = $cartService;
+    }
+
     public function store(Request $request)
     {
-        // Проверяем, авторизован ли пользователь
-        if (!auth()->check()) {
+        Log::info('OrderController@store: Checkout process initiated.');
+
+        if (!Auth::check()) {
+            Log::warning('OrderController@store: Attempted checkout by unauthenticated user.');
             return redirect()->route('login')->with('error', 'Для оформления заказа необходимо войти в аккаунт.');
         }
 
-        $user = auth()->user();
-        $cart = session()->get('cart', []);
+        $user = Auth::user();
 
-        Log::info('OrderController@store: Cart content from session', $cart);
-        Log::info('OrderController@store: Request data', $request->all());
+        $cart = $this->cartService->getCart();
 
-        if (empty($cart)) {
+        Log::info('OrderController@store: Current cart state from CartService', [
+            'cart_id' => $cart->id ?? 'N/A',
+            'cart_user_id' => $cart->user_id ?? 'N/A',
+            'cart_guest_token' => $cart->guest_token ?? 'N/A',
+            'cart_items_count' => $cart->items->count(),
+            'cart_items_data' => $cart->items->map(fn($item) => [
+                'product_id' => $item->product_id,
+                'quantity' => $item->quantity,
+                'price_at_addition' => $item->price_at_addition
+            ])->toArray()
+        ]);
+
+        if ($cart->items->isEmpty()) {
+            Log::warning('OrderController@store: Attempted checkout with an empty cart (from DB).');
             return redirect()->route('cart.index')->with('error', 'Ваша корзина пуста.');
         }
 
-        // Проверяем наличие товаров на складе перед началом транзакции
-        $productQuantitiesInCart = [];
-        // ВАЖНО: Если корзина в сессии имеет числовые индексы (0, 1, 2), как было в вашем dd(),
-        // то этот цикл не будет работать корректно, потому что $productId будет 0, 1, 2...
-        // Убедитесь, что CartController.php сохраняет product_id как ключ!
-        foreach ($cart as $productId => $itemDetails) {
-            // Если $productId в $cart - это реальный ID продукта:
-            $productQuantitiesInCart[$productId] = $itemDetails['quantity'];
-            // Если $productId в $cart - это числовой индекс (0, 1, 2), то это неправильно
-            // и нужно будет пересмотреть, как корзина формируется в сессии.
-            // Но исходя из моих последних исправлений CartController, теперь $productId должен быть верным.
-        }
+        $productIdsInCart = $cart->items->pluck('product_id')->unique()->toArray();
+        $productsInCartDB = Product::whereIn('id', $productIdsInCart)->get()->keyBy('id');
 
-        $productsInCart = Product::whereIn('id', array_keys($productQuantitiesInCart))->get()->keyBy('id');
-
-        foreach ($productQuantitiesInCart as $productId => $quantityInCart) {
-            $product = $productsInCart->get($productId);
+        foreach ($cart->items as $cartItem) {
+            $product = $productsInCartDB->get($cartItem->product_id);
 
             if (!$product) {
-                Log::warning("OrderController@store: Product ID {$productId} not found in database while checking quantity.");
-                return redirect()->route('cart.index')->with('error', "Один из товаров в вашей корзине не найден.");
+                Log::warning("OrderController@store: Product ID {$cartItem->product_id} not found in database for cart item ID {$cartItem->id}. Removing from cart and redirecting.");
+                $cartItem->delete();
+                return redirect()->route('cart.index')->with('error', "Один из товаров в вашей корзине ({$cartItem->product_name}?) не найден и был удален. Пожалуйста, проверьте корзину.");
             }
 
-            // ИСПРАВЛЕНИЕ: Используем поле 'quantity' для проверки количества.
-            // Если хотите использовать аксессор, это будет $product->quantity_available.
-            // Для прямой работы с полем БД, используйте $product->quantity. Оба варианта подойдут,
-            // но важно быть последовательным. Я использую $product->quantity здесь.
-            if ($product->quantity < $quantityInCart) {
-                Log::warning("OrderController@store: Insufficient quantity for product {$product->id} ({$product->name}). Available: {$product->quantity}, In cart: {$quantityInCart}.");
-                return redirect()->route('cart.index')->with('error', "Недостаточно товара \"{$product->name}\" на складе. Доступно: {$product->quantity}. В корзине: {$quantityInCart}");
+            // Проверка доступного количества с использованием аксессора
+            if ($product->quantity_available < $cartItem->quantity) {
+                Log::warning("OrderController@store: Insufficient quantity for product {$product->id} ({$product->name}). Available: {$product->quantity_available}, In cart: {$cartItem->quantity}.");
+                return redirect()->route('cart.index')->with('error', "Недостаточно товара \"{$product->name}\" на складе. Доступно: {$product->quantity_available}. В корзине: {$cartItem->quantity}");
             }
         }
 
@@ -79,38 +83,56 @@ class OrderController extends Controller
 
             $totalAmount = 0;
             $orderItemsData = [];
-            
-            // Если cart в сессии был ассоциативным массивом (product_id => itemDetails), то этот цикл правильный.
-            foreach ($cart as $productId => $itemDetails) { 
-                $product = $productsInCart->get($productId);
+
+            foreach ($cart->items as $cartItem) {
+                $product = $productsInCartDB->get($cartItem->product_id);
 
                 if (!$product) {
                     throw ValidationException::withMessages([
-                        'cart' => 'Один из товаров в корзине не найден (ошибка обработки).'
+                        'cart' => 'Произошла ошибка: товар в корзине не найден. Пожалуйста, обновите корзину.'
                     ])->redirectTo(route('cart.index'));
                 }
 
-                // ИСПРАВЛЕНИЕ: Уменьшаем 'quantity'
-                $product->decrement('quantity', $itemDetails['quantity']); 
+                // --- АКТИВИРУЙТЕ И ИСПРАВЬТЕ ЭТУ СТРОКУ ---
+                Log::info('OrderController: Before product quantity decrement in transaction', [
+                    'product_id' => $product->id,
+                    'product_name' => $product->name,
+                    'quantity_to_decrement' => $cartItem->quantity,
+                    'current_quantity_in_db_before_decrement' => $product->quantity, // Используйте реальное поле
+                ]);
+
+                // *** ВАЖНОЕ ИЗМЕНЕНИЕ: Используем 'quantity' вместо 'quantity_available' ***
+                $product->decrement('quantity', $cartItem->quantity); // <-- Вот где должно быть реальное уменьшение
+
+                $product->refresh(); // Обновим модель, чтобы получить свежие данные
+
+                Log::info('OrderController: After product quantity decrement in transaction', [
+                    'product_id' => $product->id,
+                    'product_name' => $product->name,
+                    'quantity_decremented_by' => $cartItem->quantity,
+                    'quantity_in_db_after_decrement_and_refresh' => $product->quantity, // Используем реальное поле
+                ]);
+                // --- КОНЕЦ ИЗМЕНЕНИЙ ---
 
                 $orderItemsData[] = new OrderItem([
                     'product_id' => $product->id,
                     'product_name' => $product->name,
-                    'price' => $product->price,
-                    'quantity' => $itemDetails['quantity'],
+                    'price' => $cartItem->price_at_addition,
+                    'quantity' => $cartItem->quantity,
                 ]);
-                $totalAmount += ($product->price * $itemDetails['quantity']);
+
+                $totalAmount += ($cartItem->price_at_addition * $cartItem->quantity);
             }
 
             $order->items()->saveMany($orderItemsData);
             $order->total_amount = $totalAmount;
             $order->save();
 
-            session()->forget('cart');
+            $this->cartService->clearCart();
 
             DB::commit();
 
-            Log::info('OrderController@store: Order successfully created', ['order_id' => $order->id, 'order_number' => $order->order_number]);
+            Log::info('OrderController@store: Order successfully created.', ['order_id' => $order->id, 'order_number' => $order->order_number, 'user_id' => $user->id]);
 
             return redirect()->route('profile.edit')->with('success', 'Заказ №' . $order->order_number . ' успешно оформлен!');
 
@@ -121,29 +143,27 @@ class OrderController extends Controller
                 'exception_file' => $e->getFile(),
                 'exception_line' => $e->getLine(),
                 'trace' => $e->getTraceAsString(),
-                'cart_state_on_error' => $cart
+                'cart_state_on_error' => $cart->items->map(fn($item) => ['product_id' => $item->product_id, 'quantity' => $item->quantity])->toArray(),
+                'user_id' => Auth::id()
             ]);
 
             return redirect()->route('cart.index')->with('error', 'Произошла ошибка при оформлении заказа. Пожалуйста, попробуйте еще раз.');
         }
     }
 
-    /**
-     * Отображает историю заказов пользователя.
-     */
     public function index()
     {
         $userOrders = Auth::user()->orders()
-                           ->with(['items.product']) // Загружаем товары и их продукты
-                           ->latest()
-                           ->paginate(10);
+                                   ->with(['items.product'])
+                                   ->latest()
+                                   ->paginate(10);
 
-        return Inertia::render('Profile/Orders', [ // Убедитесь, что это правильный путь к компоненту для истории заказов
+        return Inertia::render('Profile/Orders', [
             'userOrders' => $userOrders->through(fn ($order) => [
                 'id' => $order->id,
                 'order_number' => $order->order_number,
                 'total_amount' => $order->total_amount,
-                'status' => __('statuses.' . $order->status), // <-- ПЕРЕВОД СТАТУСА ЗДЕСЬ
+                'status' => __('statuses.' . $order->status),
                 'created_at' => $order->created_at->format('d.m.Y H:i'),
                 'items' => $order->items->map(fn ($item) => [
                     'product_name' => $item->product_name,
@@ -152,7 +172,7 @@ class OrderController extends Controller
                     'product_image_url' => $item->product ? $item->product->main_image_url : asset('images/default_product.png'),
                     'product_slug' => $item->product->slug ?? null,
                 ])
-            ])
+            ])->toArray()
         ]);
     }
 }

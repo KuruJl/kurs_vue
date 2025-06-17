@@ -20,15 +20,5 @@ class AuthServiceProvider extends ServiceProvider
     /**
      * Register any authentication / authorization services.
      */
-    public function boot(): void
-    {
-        // Определяем Gate для управления заказами
-        Gate::define('manage-orders', function (User $user) {
-            // Здесь вы должны определить логику, кто может управлять заказами.
-            // Например, если у вас есть поле 'is_admin' в таблице 'users'.
-            return $user->is_admin === 1; // Или 'is_admin' === true, в зависимости от типа поля.
-            // Если у вас более сложная система ролей/разрешений (например, spatie/laravel-permission),
-            // то здесь будет $user->hasRole('admin') или $user->can('edit orders').
-        });
-    }
+    
 }
