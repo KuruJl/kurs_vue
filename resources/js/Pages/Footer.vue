@@ -1,8 +1,6 @@
 <template>
-    <footer class="border-t border-white/20
-                   w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8
-                    sm:mt-24  sm:mb-10
-                    sm:pt-12 flex flex-wrap justify-between items-start gap-8 ">
+<footer class="border-t border-white/20 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-12 flex flex-wrap justify-between items-start gap-8">
+
         <div class="flex-shrink-0">
             <Link href="/" class="font-norwester text-3xl sm:text-4xl md:text-5xl text-pink-200 hover:opacity-90 transition">hachiroku</Link>
         </div>

@@ -8,6 +8,8 @@ use App\Models\User;  // Импортируем модель User для eager l
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Validation\Rule; // Для валидации статуса
+use Illuminate\Support\Facades\DB; // <--- ДОБАВЬТЕ ЭТОТ ИМПОРТ
+use App\Models\OrderItem; // <--- ДОБАВЬТЕ ЭТОТ ИМПОРТ
 
 class OrderController extends Controller
 {
@@ -52,21 +54,54 @@ class OrderController extends Controller
             'availableStatuses' => self::AVAILABLE_STATUSES, // Передаем доступные статусы во Vue для выпадающего списка
         ]);
     }
+    public function updateItems(Request $request, Order $order)
+    {
+        $validated = $request->validate([
+            'items' => 'required|array',
+            'items.*.id' => 'required|integer|exists:order_items,id', // Проверяем, что ID позиции существует
+            'items.*.quantity' => 'required|integer|min:0', // Количество может быть 0 для удаления
+        ]);
 
+        // Используем транзакцию, чтобы все изменения применились, либо не применился ни один
+        DB::transaction(function () use ($validated, $order) {
+            $newTotalAmount = 0;
+
+            foreach ($validated['items'] as $itemData) {
+                // Находим позицию заказа, убедившись, что она принадлежит именно этому заказу
+                $orderItem = OrderItem::where('id', $itemData['id'])
+                                      ->where('order_id', $order->id)
+                                      ->firstOrFail();
+
+                if ($itemData['quantity'] > 0) {
+                    // Обновляем количество
+                    $orderItem->quantity = $itemData['quantity'];
+                    $orderItem->save();
+                    // Добавляем к новой итоговой сумме
+                    $newTotalAmount += $orderItem->price * $orderItem->quantity;
+                } else {
+                    // Если количество 0, удаляем позицию
+                    $orderItem->delete();
+                }
+            }
+
+            // Обновляем итоговую сумму заказа
+            $order->total_amount = $newTotalAmount;
+            $order->save();
+        });
+        
+        return redirect()->back()->with('success', 'Состав заказа успешно обновлен.');
+    }
     /**
      * Отображает детали конкретного заказа для административной панели.
      * Используем Model Binding: Laravel автоматически найдет Order по {order} из URL.
      */
-    public function show($id) // Изменяем с Order $order на $id, чтобы вручную контролировать поиск
+    public function show($id)
     {
-        // Eager load relationships user, items, and product for each item
         $order = Order::with(['user', 'items.product'])->find($id);
     
-        // Если заказ не найден, передаем null во Vue
-        // Vue компонент обработает это через v-if="order"
         if (!$order) {
             return Inertia::render('Admin/Orders/Show', [
-                'order' => null, // Явно передаем null
+                'order' => null,
                 'availableStatuses' => self::AVAILABLE_STATUSES,
             ]);
         }
@@ -76,19 +111,16 @@ class OrderController extends Controller
                 'id' => $order->id,
                 'order_number' => $order->order_number,
                 'total_amount' => $order->total_amount,
-                'status' => __('statuses.' . $order->status), // <-- Добавляем перевод
+                'status' => __('statuses.' . $order->status),
                 'created_at' => $order->created_at->format('d.m.Y H:i'),
-                'user' => [
-                    'id' => $order->user->id,
-                    'name' => $order->user->name,
-                    'email' => $order->user->email,
-                ],
+                'user' => $order->user,
                 'items' => $order->items->map(fn ($item) => [
+                    'id' => $item->id, // <--- ВАЖНОЕ ИЗМЕНЕНИЕ! Добавляем ID позиции заказа.
                     'product_name' => $item->product_name,
                     'quantity' => $item->quantity,
                     'price' => $item->price,
                     'product_slug' => $item->product->slug ?? null,
-                    'product_image_url' => $item->product ? $item->product->main_image_url : asset('images/default_product.png'),
+                    'product_image_url' => optional($item->product)->main_image_url,
                 ]),
             ],
             'availableStatuses' => self::AVAILABLE_STATUSES,

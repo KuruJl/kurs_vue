@@ -8,27 +8,12 @@
     use Illuminate\Support\Facades\Route;
     use Inertia\Inertia;
     use Illuminate\Foundation\Application;
-    use App\Http\Controllers\Admin\OrderController as AdminOrderController; // <-- УБЕДИТЕСЬ, ЧТО ИМЕННО ТАК
-
-  
-
-    // Главная страница
+    use App\Http\Controllers\Admin\OrderController as AdminOrderController; 
     Route::get('/', [HomeController::class, 'index'])->name('home');
-
-
-    // Дашборд (требует аутентификации и верификации)
-    Route::get('/dashboard', function () {
-        return Inertia::render('Dashboard');
-    })->middleware(['auth', 'verified'])->name('dashboard');
-
-    // Маршруты, требующие аутентификации
     Route::middleware('auth')->group(function () {
-        // Профиль пользователя
         Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
         Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
         Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
-
-        // Маршруты корзины
         Route::get('/cart', [CartController::class, 'index'])->name('cart.index');
         Route::post('/cart', [CartController::class, 'store'])->name('cart.store');
         Route::patch('/cart/{product}', [CartController::class, 'update'])->name('cart.update');
@@ -59,6 +44,9 @@ Route::get('/profile/orders', [OrderController::class, 'index'])
             Route::get('/orders/{order}', [AdminOrderController::class, 'show'])->name('orders.show');
             // Роут для обновления статуса заказа (используем PUT метод)
             Route::put('/orders/{order}/update-status', [AdminOrderController::class, 'updateStatus'])->name('orders.updateStatus');
+
+            Route::put('/orders/{order}/update-items', [AdminOrderController::class, 'updateItems'])->name('orders.updateItems');
+
     });
     
     // Маршрут для страницы каталога
@@ -68,9 +56,7 @@ Route::get('/profile/orders', [OrderController::class, 'index'])
     Route::get('/support', function () {
         return Inertia::render('Support');
     });
-    Route::get('/square', function () {
-        return Inertia::render('Square');
-    });
+
 
     // Маршрут для страницы товара по id
     Route::get('/products/{slug}', [ProductController::class, 'show'])->name('products.show');

@@ -29,7 +29,5 @@ class CategorySeeder extends Seeder
                 'updated_at' => now(),
             ]);
         }
-
-        
     }
 }

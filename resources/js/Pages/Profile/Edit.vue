@@ -263,17 +263,7 @@ const deleteUser = () => {
                 <OrderHistory :orders="props.orders" /> 
             </div>
 
-            <div class="p-4 sm:p-8 bg-[#011F41] shadow sm:rounded-lg border-2 border-white/50">
-                <h3 class="font-rubik-semibold mb-6 sm:mb-10 text-2xl sm:text-3xl font-bold text-white">
-                    Удалить аккаунт
-                </h3>
-                <p class="mt-1 text-sm text-white">
-                    После удаления вашего аккаунта все его ресурсы и данные будут безвозвратно удалены. Перед удалением аккаунта, пожалуйста, загрузите любые данные или информацию, которые вы хотите сохранить.
-                </p>
-                <button @click="deleteUser" class="mt-6 inline-flex items-center px-4 py-2 bg-red-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-red-500 active:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 transition ease-in-out duration-150">
-                    Удалить аккаунт
-                </button>
-            </div>
+            
         </div>
     </main>
     <AppFooter />

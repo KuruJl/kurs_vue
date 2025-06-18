@@ -43,16 +43,14 @@ console.log('Best Sellers received in Main.vue:', props.bestSellers);
             <template v-if="bestSellers.length > 0">
                 <Link v-for="product in bestSellers" :key="product.id" :href="`/products/${product.slug || product.id}`"
                       class="flex flex-col items-center p-6 sm:p-8 border-2 bg-[#011F41] hover:bg-blue-600/30 transition rounded-xl border-white/50 h-full justify-between">
-                    
                     <div class="w-full h-48 sm:h-56 md:h-64 flex items-center justify-center mb-4 sm:mb-6 overflow-hidden">
                         <img :src="product.image_url"
                              :alt="product.name"
                              class="max-w-full max-h-full object-contain" />
                     </div>
-
                     <h3 class="font-rubik-semibold mb-4 sm:mb-6 text-xl sm:text-2xl text-white/80 text-center flex-grow">{{ product.name }}</h3>
-                    
-                    <p class="font-rubik-semibold text-xl sm:text-2xl md:text-3xl font-bold rounded-3xl bg-white/80 h-12 sm:h-[50px] text-black/80 w-full max-w-[220px] flex items-center justify-center">
+                    <p class="font-rubik-semibold text-xl sm:text-2xl md:text-3xl font-bold rounded-3xl bg-white/80 h-12 sm:h-[50px] text-black/80 w-full 
+                    max-w-[220px] flex items-center justify-center">
                         {{ formatPrice(product.price) }} ₽
                     </p>
                 </Link>
@@ -99,13 +97,18 @@ console.log('Best Sellers received in Main.vue:', props.bestSellers);
         
         <div class="flex flex-col gap-4 sm:gap-6 lg:w-1/2">
             <p class="font-rubik-light text-base sm:text-lg md:text-xl text-white text-justify">
-                Компания Hachiroku была основана в 2010 году группой увлеченных геймеров и инженеров, которые стремились создать инновационные и высококачественные игровые девайсы. Название Hachiroku, что означает "восемь-шесть" на японском, было выбрано в честь знаменитого автомобиля Toyota AE86, символизирующего скорость, точность и страсть к совершенству.
+                Компания Hachiroku была основана в 2010 году группой увлеченных геймеров и инженеров, которые стремились создать 
+                инновационные и высококачественные игровые девайсы. Название Hachiroku, что означает "восемь-шесть" на японском, 
+                было выбрано в честь знаменитого автомобиля Toyota AE86, символизирующего скорость, точность и страсть к совершенству.
             </p>
             <p class="font-rubik-light text-base sm:text-lg md:text-xl text-white text-justify">
-                С первых дней своего существования Hachiroku зарекомендовала себя как лидер в индустрии игровых технологий, постоянно разрабатывая устройства, которые поднимают опыт геймеров на новый уровень. Мы верим, что технологии должны служить игрокам, а не наоборот, поэтому наши продукты всегда ориентированы на удобство, функциональность и стиль.
+                С первых дней своего существования Hachiroku зарекомендовала себя как лидер в индустрии игровых технологий, 
+                постоянно разрабатывая устройства, которые поднимают опыт геймеров на новый уровень. Мы верим, что технологии должны служить игрокам, 
+                а не наоборот, поэтому наши продукты всегда ориентированы на удобство, функциональность и стиль.
             </p>
             <p class="font-rubik-light text-base sm:text-lg md:text-xl text-white text-justify">
-                Наши достижения включают множество инновационных разработок, таких как адаптивные контроллеры, ультраточные мыши и наушники с иммерсивным звуком, которые получили признание не только среди профессионалов, но и обычных игроков, ценящих качество и надежность.
+                Наши достижения включают множество инновационных разработок, таких как адаптивные контроллеры, ультраточные мыши и наушники с иммерсивным звуком, 
+                которые получили признание не только среди профессионалов, но и обычных игроков, ценящих качество и надежность.
             </p>
         </div>
     </section>

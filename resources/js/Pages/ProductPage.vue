@@ -104,6 +104,8 @@ const addToCart = async () => {
 
 <template>
     <Head :title="product?.name || 'Товар'" />
+    <div class="flex flex-col min-h-screen bg-Wblue">
+
     <AppHeader />
 
     <main class="min-h-screen bg-Wblue">
@@ -195,6 +197,7 @@ const addToCart = async () => {
     </main>
 
     <AppFooter />
+    </div>
 </template>
 
 <style scoped>

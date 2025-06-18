@@ -127,22 +127,27 @@ console.log('Products received in Catalog.vue:', props.products.data.map(p => ({
                                 <div class="flex items-center gap-2 mb-1">
                                     <label for="min_price" class="font-rubik-light text-lg text-white/80">От:</label>
                                     <input type="number" id="min_price" v-model.number="minPrice"
-                                           class="bg-darkBlue text-white border border-white/30 rounded py-2 px-3 w-full focus:outline-none focus:ring-pink-500 focus:border-pink-500 text-sm">
+                                           class="bg-darkBlue text-white border border-white/30 rounded py-2 px-3 w-full focus:outline-none focus:ring-pink-500 
+                                           focus:border-pink-500 text-sm">
                                 </div>
                                 <div class="flex items-center gap-2">
                                     <label for="max_price" class="font-rubik-light text-lg text-white/80">До:</label>
                                     <input type="number" id="max_price" v-model.number="maxPrice"
-                                           class="bg-darkBlue text-white border border-white/30 rounded py-2 px-3 w-full focus:outline-none focus:ring-pink-500 focus:border-pink-500 text-sm">
+                                           class="bg-darkBlue text-white border border-white/30 rounded py-2 px-3 w-full focus:outline-none focus:ring-pink-500 
+                                           focus:border-pink-500 text-sm">
                                 </div>
                             </div>
                             <div class="mt-4 sm:mt-6">
                                 <h3 class="font-rubik-medium text-lg text-white/90 mb-2">Поиск</h3>
                                 <input type="text" id="search_term" v-model="searchTerm" placeholder="Найти товар..."
-                                       class="bg-darkBlue text-white border border-white/30 rounded py-2 px-3 w-full focus:outline-none focus:ring-pink-500 focus:border-pink-500 text-sm">
+                                       class="bg-darkBlue text-white border border-white/30 rounded py-2 px-3 w-full focus:outline-none focus:ring-pink-500 
+                                       focus:border-pink-500 text-sm">
                             </div>
 
-                            <button type="button" @click="applyFilters" class="bg-blue-600/20 text-white border-2 border-white rounded-md py-3 px-6 font-rubik-semibold text-lg hover:bg-blue-600/30 transition mt-4">Применить</button>
-                            <button type="button" @click="resetFilters" class="inline-block font-rubik-light text-lg text-pink-200 hover:opacity-80 transition ml-2 mt-2">Сбросить</button>
+                            <button type="button" @click="applyFilters" class="bg-blue-600/20 text-white border-2 border-white rounded-md py-3 px-6 
+                            font-rubik-semibold text-lg hover:bg-blue-600/30 transition mt-4">Применить</button>
+                            <button type="button" @click="resetFilters" class="inline-block font-rubik-light text-lg text-pink-200 hover:opacity-80 
+                            transition ml-2 mt-2">Сбросить</button>
                         </div>
                     </div>
                 </aside>
@@ -199,7 +204,7 @@ console.log('Products received in Catalog.vue:', props.products.data.map(p => ({
     </main>
 
     <AppFooter />
-</template>
+</template> 
 
 <style scoped>
 /* Ваши стили */

@@ -16,15 +16,12 @@ class Product extends Model
         'name',
         'price',
         'description',
-        // 'in_stock', // Если это поле не используется, можно удалить
-        'quantity', // Это поле, которое теперь будет для доступного количества
+        'quantity', 
         'slug',
         'feature',
     ];
 
-    // Убедитесь, что 'stock' есть в $fillable, чтобы его можно было массово назначать.
-    // Если хотите использовать 'quantity_available' и 'is_in_stock' как аксессоры
-    // для 'stock', то оставляем их в $appends.
+    
     protected $appends = ['quantity_available', 'is_in_stock', 'main_image_url']; 
 
     public function category()
@@ -63,13 +60,11 @@ class Product extends Model
         return asset('images/default_product.png');
     }
 
-    // Аксессор, который будет возвращать текущее количество на складе
     public function getQuantityAvailableAttribute(): int
     {
         return (int) ($this->attributes['quantity'] ?? 0); 
     }
 
-    // ИСПРАВЛЕНИЕ: is_in_stock теперь также будет зависеть от поля 'quantity'
     public function getIsInStockAttribute(): bool
     {
         return (int) ($this->attributes['quantity'] ?? 0) > 0;

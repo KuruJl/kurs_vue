@@ -7,41 +7,33 @@ use App\Models\Product;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
-use Inertia\Response; // Добавлено для явного указания типа возврата
+use Inertia\Response; 
 
 class ProductController extends Controller
 {
-    public function index(Request $request): Response // Явно указываем тип возврата
+    public function index(Request $request): Response 
     {
         try {
-            // Загружаем категорию и ИЗОБРАЖЕНИЯ!
-            $query = Product::query()->with('category', 'images'); // <-- ДОБАВЛЕНО 'images'
+            $query = Product::query()->with('category', 'images'); 
 
-            // Фильтрация по цене
-            if ($request->filled('min_price')) { // Используем filled() для проверки на непустое значение
+            if ($request->filled('min_price')) { 
                 $query->where('price', '>=', $request->min_price);
             }
             
-            if ($request->filled('max_price')) { // Используем filled()
+            if ($request->filled('max_price')) { 
                 $query->where('price', '<=', $request->max_price);
             }
             
-            // Фильтрация по категориям
-            // $request->category может быть массивом или строкой ('1,2,3') в зависимости от того, как браузер отправляет
-            // Если категория - это массив, (array)$request->category корректно.
-            // Если это строка с ID, разделенными запятыми, нужно будет разобрать.
-            // Vue-компонент отправляет массив `selectedCategoryIds`, поэтому ожидаем массив.
+          
             if ($request->has('category') && !empty($request->category)) {
-                // Преобразуем входящие категории в массив целых чисел
                 $categoryIds = array_map('intval', (array) $request->category);
                 $query->whereIn('category_id', $categoryIds);
             }
             
-            // Поиск
-            if ($request->filled('search')) { // Используем filled()
+            if ($request->filled('search')) { 
                 $searchTerm = $request->search;
                 $query->where('name', 'like', '%'.$searchTerm.'%')
-                      ->orWhere('description', 'like', '%'.$searchTerm.'%'); // Добавим поиск по описанию
+                      ->orWhere('description', 'like', '%'.$searchTerm.'%'); 
             }
             
             $products = $query->paginate(12)->withQueryString();
@@ -50,10 +42,9 @@ class ProductController extends Controller
             return Inertia::render('Catalog', [
                 'products' => $products,
                 'categories' => $categories,
-                // Важно передать текущие значения фильтров обратно, чтобы Vue мог их инициализировать
                 'initialMinPrice' => $request->input('min_price'),
                 'initialMaxPrice' => $request->input('max_price'),
-                'initialCategoryIds' => array_map('intval', (array) $request->input('category', [])), // Гарантируем массив int
+                'initialCategoryIds' => array_map('intval', (array) $request->input('category', [])), 
                 'initialSearch' => $request->input('search'),
             ]);
 
@@ -63,12 +54,10 @@ class ProductController extends Controller
         }
     }
 
-    // ... ваш метод show()
     public function show($product)
     {
         try {
-            // Пытаемся найти товар по ID или slug, загружая категорию и изображения
-            $product = Product::with('category', 'images') // <-- ДОБАВЛЕНО 'images'
+            $product = Product::with('category', 'images') 
                 ->where('id', $product)
                 ->orWhere('slug', $product)
                 ->firstOrFail();
@@ -82,7 +71,7 @@ class ProductController extends Controller
 
             $relatedProducts = Product::where('category_id', $product->category_id)
                 ->where('id', '!=', $product->id)
-                ->with('images', 'category') // <-- ДОБАВЛЕНО 'images' и 'category' для связанных товаров
+                ->with('images', 'category') 
                 ->inRandomOrder()
                 ->limit(4)
                 ->get();

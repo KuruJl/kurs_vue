@@ -9,6 +9,8 @@ use App\Models\ProductImage;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Storage;
+use App\Models\OrderItem; // <--- ДОБАВЬТЕ ЭТОТ ИМПОРТ
+use Illuminate\Support\Facades\DB; // <--- ДОБАВЬТЕ ЭТОТ ИМПОРТ
 
 class ProductController extends Controller
 {
@@ -19,10 +21,45 @@ class ProductController extends Controller
         $this->middleware('is_admin');
     }
 
-    public function index()
+    public function index(Request $request)
     {
-        $products = Product::with('images')->latest()->paginate(10);
-        return Inertia::render('Admin/Products/Index', compact('products'));
+        // --- Параметры сортировки (остаются без изменений) ---
+        $sort = $request->query('sort', 'created_at');
+        $direction = $request->query('direction', 'desc');
+        $allowedSorts = ['name', 'price', 'quantity', 'created_at'];
+        if (!in_array($sort, $allowedSorts)) {
+            $sort = 'created_at';
+        }
+    
+        // --- Логика фильтрации ---
+        $productsQuery = Product::query() // Начинаем построение запроса
+            ->with('images')
+            // 1. Фильтр по поисковой строке (ищем в названии и описании)
+            ->when($request->input('search'), function ($query, $search) {
+                $query->where(function ($q) use ($search) {
+                    $q->where('name', 'like', "%{$search}%")
+                      ->orWhere('description', 'like', "%{$search}%");
+                });
+            })
+            // 2. Фильтр по ID категории
+            ->when($request->input('category_id'), function ($query, $categoryId) {
+                $query->where('category_id', $categoryId);
+            });
+    
+        // Применяем сортировку и пагинацию к уже отфильтрованному запросу
+        $products = $productsQuery->orderBy($sort, $direction)
+            ->paginate(10)
+            ->withQueryString(); // Сохраняет ВСЕ параметры запроса (и фильтры, и сортировку)
+    
+        // 3. Получаем все категории для выпадающего списка в фильтре
+        $categories = Category::all();
+    
+        return Inertia::render('Admin/Products/Index', [
+            'products' => $products,
+            'categories' => $categories, // Передаем категории во фронтенд
+            // 4. Передаем ВСЕ текущие параметры запроса для заполнения полей формы и индикаторов сортировки
+            'query' => $request->only(['sort', 'direction', 'search', 'category_id']),
+        ]);
     }
 
     public function create()
@@ -33,33 +70,48 @@ class ProductController extends Controller
     }
 
     public function store(Request $request)
-    {
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'slug' => 'required|string|max:255|unique:products,slug', // <-- ДОБАВИТЬ ЭТУ СТРОКУ
-            'description' => 'required|string',
-            'price' => 'required|numeric|min:0',
-            'category_id' => 'required|exists:categories,id',
-            'feature' => 'nullable|string',
-            'quantity' => 'required|integer|min:0',
-            'images' => 'nullable|array',
-            'images.*' => 'image|mimes:jpeg,png,jpg,gif|max:2048'
-        ]);
+{
+    $validated = $request->validate([
+        'name' => 'required|string|max:255',
+        'slug' => 'required|string|max:255|unique:products,slug',
+        'description' => 'required|string',
+        'price' => 'required|numeric|min:0',
+        'category_id' => 'required|exists:categories,id',
+        'feature' => 'nullable|string',
+        'quantity' => 'required|integer|min:0',
+        'images' => 'nullable|array',
+        'images.*' => 'image|mimes:jpeg,png,jpg,gif|max:2048'
+    ]);
 
-        $product = Product::create($validated);
+    $product = Product::create($validated);
 
-        if ($request->hasFile('images')) {
-            foreach ($request->file('images') as $key => $image) {
-                $path = $image->store('products', 'public');
-                $product->images()->create([
-                    'path' => $path,
-                    'is_main' => $key === 0
-                ]);
-            }
+    if ($request->hasFile('images')) {
+        foreach ($request->file('images') as $key => $imageFile) {
+            // Было:
+            // $path = $imageFile->store('products', 'public');
+            // Это сохраняло файл в storage/app/public/products и возвращало "products/filename.jpg"
+
+            // Стало:
+            // 1. Создаем уникальное имя для файла, чтобы избежать конфликтов
+            $imageName = time() . '_' . $imageFile->getClientOriginalName();
+            
+            // 2. Перемещаем файл напрямую в папку public/images
+            $imageFile->move(public_path('images'), $imageName);
+
+            // 3. Формируем публичный URL для сохранения в базу данных
+            $publicPath = '/images/' . $imageName;
+
+            // 4. Сохраняем в базу данных правильный путь
+            $product->images()->create([
+                'path' => $publicPath,
+                'is_main' => $key === 0
+            ]);
         }
-
-        return redirect()->route('admin.products.index')->with('success', 'Товар добавлен');
     }
+
+    return redirect('/admin/products')->with('success', 'Товар добавлен'); // Используем прямую ссылку
+}
+
 
     public function edit(Product $product)
     {
