@@ -19,7 +19,7 @@ return new class extends Migration
             $table->text('description');
             $table->text('feature');
             $table->string('slug')->unique();
-            $table->integer('quantity')->default(100)->unsigned();
+            $table->integer('quantity')->default(3)->unsigned();
             $table->timestamps();
         });
     }

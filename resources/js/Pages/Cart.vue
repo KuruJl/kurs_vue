@@ -1,6 +1,6 @@
 <script setup>
-import { Head, Link, usePage } from '@inertiajs/vue3';
-import { ref, computed } from 'vue';
+import { Head, Link } from '@inertiajs/vue3';
+import { computed } from 'vue';
 import { router } from '@inertiajs/vue3';
 import AppHeader from './Header.vue';
 import AppFooter from './Footer.vue';
@@ -14,43 +14,26 @@ const props = defineProps({
         type: Number,
         default: 0,
     },
-    // Возможно, у вас уже есть глобальный cartCount через HandleInertiaRequests,
-    // но если нет, можете добавить его сюда, если контроллер его возвращает
-    // cartCount: {
-    //     type: Number,
-    //     default: 0,
-    // }
 });
 
 const submitOrder = () => {
     router.post('/checkout', {}, {
         preserveScroll: true,
         onSuccess: (page) => {
-            if (page.props.flash && page.props.flash.error) {
-                console.error('Ошибка оформления заказа (с сервера):', page.props.flash.error);
-                alert(page.props.flash.error);
-            } else {
-                console.log('Заказ успешно оформлен!', page.props.flash.success);
+            if (page.props.flash && page.props.flash.success) {
                 alert(page.props.flash.success);
-                // После успешного заказа, можно обновить страницу, чтобы корзина очистилась на фронте
-                // Этот визит к cart.index обновит пропсы и покажет пустую корзину.
-                router.visit(route('cart.index'), { preserveScroll: true, preserveState: false });
+                router.visit('/cart', { preserveScroll: true, preserveState: false });
+            } else if (page.props.flash && page.props.flash.error) {
+                alert(page.props.flash.error);
             }
         },
         onError: (errors) => {
-            console.error('Ошибка оформления заказа (Inertia/валидация):', errors);
-            if (errors.message) {
-                alert(errors.message);
-            } else if (errors.cart) {
-                alert(errors.cart);
-            } else {
-                alert('Произошла неизвестная ошибка при оформлении заказа.');
-            }
+            console.error('Ошибка оформления заказа:', errors);
+            alert(errors.cart || 'Произошла ошибка при оформлении заказа.');
         }
     });
 };
 
-// Форматирование цены
 const formatPrice = (value) => {
     if (value === undefined || value === null) return '0';
     return new Intl.NumberFormat('ru-RU', {
@@ -59,58 +42,30 @@ const formatPrice = (value) => {
     }).format(value);
 };
 
-// Обновление количества
 const updateQuantity = (productId, newQuantity) => {
-    if (newQuantity < 0) return; // Можно разрешить 0 для удаления
-    router.patch(route('cart.update', productId), { quantity: newQuantity }, {
-        // preserveState: true не нужен, если контроллер перенаправляет на ту же страницу
-        // Inertia автоматически получит новые пропсы.
+    if (newQuantity < 0) return;
+    router.patch(`/cart/${productId}`, { quantity: newQuantity }, {
         preserveScroll: true,
-        onSuccess: () => {
-            const flash = usePage().props.flash;
-            if (flash.success) {
-                // alert(flash.success); // Обычно не нужно, если страница обновится
-            } else if (flash.info) {
-                // alert(flash.info);
-            }
-        },
         onError: (errors) => {
-            console.error('Ошибка обновления количества:', errors);
             if (errors.message) {
                 alert(errors.message);
-            } else {
-                alert('Не удалось обновить количество. Попробуйте снова.');
             }
         },
     });
 };
 
-// Удаление товара
 const removeItem = (productId) => {
     if (!confirm('Удалить этот товар из корзины?')) return;
-    router.delete(route('cart.remove', productId), {
-        // preserveState: true не нужен, если контроллер перенаправляет на ту же страницу
+    router.delete(`/cart/${productId}/remove`, {
         preserveScroll: true,
-        onSuccess: () => {
-            const flash = usePage().props.flash;
-            if (flash.success) {
-                // alert(flash.success);
-            } else if (flash.info) {
-                // alert(flash.info);
-            }
-        },
         onError: (errors) => {
-            console.error('Ошибка удаления товара:', errors);
             if (errors.message) {
                 alert(errors.message);
-            } else {
-                alert('Не удалось удалить товар. Попробуйте снова.');
             }
         },
     });
 };
 
-// Проверка пустой корзины
 const isCartEmpty = computed(() => props.cart.length === 0);
 </script>
 
@@ -167,7 +122,7 @@ const isCartEmpty = computed(() => props.cart.length === 0);
                                     <span class="text-xl font-bold">+</span>
                                 </button>
                             </div>
-
+                            
                             <button type="button"
                                     @click="removeItem(item.id)"
                                     aria-label="Удалить товар"
