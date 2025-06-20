@@ -2,43 +2,45 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Product; // Не забудьте импортировать модель Product
+use App\Models\Product;
+use App\Models\Category; // <--- ШАГ 1: ДОБАВЬТЕ ЭТОТ ИМПОРТ
 use Inertia\Inertia;
-use Inertia\Response; // Добавлено для явного указания типа возврата
+use Inertia\Response;
 
 class HomeController extends Controller
 {
     /**
-     * Отображает главную страницу с бестселлерами и категориями (опционально).
+     * Отображает главную страницу с бестселлерами и категориями.
      */
-    public function index(): Response // Явно указываем тип возврата
+    public function index(): Response
     {
-        // Загружаем 3 бестселлера или просто случайных продукта с изображениями.
-        // Предполагаем, что у вас есть ProductModel и связь 'images'.
+        // Логика для бестселлеров остается без изменений
         $bestSellers = Product::with('images')
-                                ->inRandomOrder() // Для примера берем случайные, можете изменить логику
+                                ->inRandomOrder()
                                 ->limit(3)
                                 ->get();
 
-        // Если вы хотите также динамически выводить категории на главной,
-        // раскомментируйте это и передайте 'categories' в Inertia::render
-        // use App\Models\Category;
-        // $categories = Category::all();
+        // --- ШАГ 2: АКТИВИРУЙТЕ ЭТОТ БЛОК ---
+        // Получаем все категории из базы данных
+        $categories = Category::all()->map(fn($category) => [
+            'id' => $category->id,
+            'name' => $category->name,
+            'slug' => $category->slug,
+        ]);
+        // ------------------------------------
 
         return Inertia::render('Main', [
             'bestSellers' => $bestSellers->map(function ($product) {
-                // Используем аксессор 'main_image_url', который мы настроили в модели Product.
-                // Он уже должен возвращать полный URL или заглушку.
                 return [
                     'id' => $product->id,
                     'name' => $product->name,
-                    'slug' => $product->slug, // Важно для красивых URL
+                    'slug' => $product->slug,
                     'price' => $product->price,
-                    'image_url' => $product->main_image_url, // Используем аксессор
-                    // 'description' => $product->description, // Можно добавить, если нужно
+                    'image_url' => $product->main_image_url,
                 ];
             }),
-            // 'categories' => $categories, // Если вы хотите динамические категории
+            // --- ШАГ 3: ПЕРЕДАЙТЕ КАТЕГОРИИ ВО VUE ---
+            'categories' => $categories, 
         ]);
     }
 }

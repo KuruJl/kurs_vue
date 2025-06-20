@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed } from 'vue';
-import { Head, Link, useForm } from '@inertiajs/vue3';
+import { Head, Link, useForm, router  } from '@inertiajs/vue3';
 
 // 1. Определяем пропсы, которые приходят от контроллера
 const props = defineProps({
@@ -9,7 +9,16 @@ const props = defineProps({
 });
 
 
-// --- СУЩЕСТВУЮЩИЕ ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ (оставляем без изменений) ---
+const deleteOrder = () => {
+    if (confirm(`Вы уверены, что хотите навсегда удалить заказ №${props.order.order_number}? Это действие необратимо.`)) {
+        router.delete(`/admin/orders/${props.order.id}`, {
+            onError: (errors) => {
+                // Если возникнет ошибка, покажем ее
+                alert(errors.message || 'Не удалось удалить заказ.');
+            }
+        });
+    }
+};
 
 // Получает английский ключ статуса из русского названия
 const getEnglishStatusKey = (translatedStatus) => {
@@ -210,6 +219,13 @@ const submitItemChanges = () => {
             <Link href="/admin/orders" class="inline-block text-indigo-600 hover:underline">
                 ← Назад к списку заказов
             </Link>
+            <button 
+        @click="deleteOrder"
+        type="button"
+        class="px-4 py-2 ml-[20px] bg-red-600 text-white text-sm font-medium rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+    >
+        Удалить заказ
+    </button>
         </div>
       </div>
     </div>

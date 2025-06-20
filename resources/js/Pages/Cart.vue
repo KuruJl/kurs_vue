@@ -1,6 +1,6 @@
 <script setup>
 import { Head, Link } from '@inertiajs/vue3';
-import { computed } from 'vue';
+import { computed, ref  } from 'vue';
 import { router } from '@inertiajs/vue3';
 import AppHeader from './Header.vue';
 import AppFooter from './Footer.vue';
@@ -16,20 +16,39 @@ const props = defineProps({
     },
 });
 
+const cartTotal = computed(() => {
+    return props.cart.reduce((total, item) => {
+        return total + (item.price * item.quantity);
+    }, 0);
+});
+
+const handleQuantityChange = (event, productId, maxAvailable) => {
+    let newQuantity = parseInt(event.target.value, 10);
+
+    // Валидация введенного значения
+    if (isNaN(newQuantity) || newQuantity < 1) {
+        newQuantity = 1; // Если ввели ерунду или 0, ставим 1
+    }
+    if (newQuantity > maxAvailable) {
+        newQuantity = maxAvailable; // Если ввели больше, чем есть, ставим максимум
+        alert(`Максимально доступное количество этого товара: ${maxAvailable}`);
+    }
+    
+    // Вызываем нашу основную функцию обновления
+    updateQuantity(productId, newQuantity);
+};
+
 const submitOrder = () => {
     router.post('/checkout', {}, {
-        preserveScroll: true,
-        onSuccess: (page) => {
-            if (page.props.flash && page.props.flash.success) {
-                alert(page.props.flash.success);
-                router.visit('/cart', { preserveScroll: true, preserveState: false });
-            } else if (page.props.flash && page.props.flash.error) {
-                alert(page.props.flash.error);
-            }
-        },
+        // onSuccess теперь не нужен, редиректом управляет бэкенд
         onError: (errors) => {
             console.error('Ошибка оформления заказа:', errors);
-            alert(errors.cart || 'Произошла ошибка при оформлении заказа.');
+            // Если есть специфическая ошибка от валидации, покажем ее
+            if (errors.cart) {
+                alert(errors.cart);
+            } else {
+                alert('Произошла ошибка при оформлении заказа.');
+            }
         }
     });
 };
@@ -43,16 +62,48 @@ const formatPrice = (value) => {
 };
 
 const updateQuantity = (productId, newQuantity) => {
-    if (newQuantity < 0) return;
-    router.patch(`/cart/${productId}`, { quantity: newQuantity }, {
+    // Находим товар в нашем локальном массиве
+    const item = props.cart.find(p => p.id === productId);
+    if (!item) return;
+
+    // Сохраняем старое количество на случай отката
+    const oldQuantity = item.quantity;
+
+    // Проверяем, не выходим ли за рамки доступного
+    if (newQuantity > item.max_available) {
+        alert(`Максимально доступное количество: ${item.max_available}`);
+        return;
+    }
+    if (newQuantity < 1) {
+        // Если количество меньше 1, инициируем удаление
+        removeItem(productId);
+        return;
+    }
+
+    // 1. ОПТИМИСТИЧНОЕ ОБНОВЛЕНИЕ: Мгновенно меняем данные в интерфейсе
+    item.quantity = newQuantity;
+
+    // 2. ФОНОВЫЙ ЗАПРОС: Отправляем изменения на сервер
+    router.patch(`/cart/${productId}`, { 
+        quantity: newQuantity 
+    }, {
         preserveScroll: true,
+        // 3. ОБРАБОТКА ОШИБКИ: Если сервер отказал, откатываем изменения
         onError: (errors) => {
+            // Возвращаем старое количество в интерфейсе
+            item.quantity = oldQuantity;
+            // Показываем ошибку
             if (errors.message) {
                 alert(errors.message);
+            } else {
+                alert('Не удалось обновить количество товара.');
             }
         },
     });
 };
+
+// Ref для блокировки кнопок на время обновления
+const isUpdating = ref(false);
 
 const removeItem = (productId) => {
     if (!confirm('Удалить этот товар из корзины?')) return;
@@ -108,15 +159,25 @@ const isCartEmpty = computed(() => props.cart.length === 0);
                             <div class="flex items-center gap-2">
                                 <button type="button"
                                         @click="updateQuantity(item.id, item.quantity - 1)"
-                                        :disabled="item.quantity <= 1"
+                                        :disabled="item.quantity <= 1 || isUpdating"
                                         aria-label="Уменьшить количество"
                                         class="w-8 h-8 bg-white text-black rounded-sm flex items-center justify-center hover:bg-gray-200 transition disabled:opacity-50 disabled:cursor-not-allowed">
                                     <span class="text-xl font-bold">−</span>
                                 </button>
-                                <span class="font-rubik-semibold text-xl text-white w-12 text-center">{{ item.quantity }}</span>
+                                
+                                <!-- === ИЗМЕНЕНИЕ ЗДЕСЬ: INPUT ЗАМЕНЕН НА SPAN === -->
+                                <input 
+    type="number"
+    :value="item.quantity"
+    @change="handleQuantityChange($event, item.id, item.max_available)"
+    min="1"
+    :max="item.max_available"
+    class="font-rubik-semibold text-xl text-white w-[75px] text-center bg-transparent border-t border-b border-white/30 h-8 focus:outline-none focus:ring-1 focus:ring-pink-200"
+    aria-label="Количество товара"
+/>                                
                                 <button type="button"
                                         @click="updateQuantity(item.id, item.quantity + 1)"
-                                        :disabled="item.quantity >= item.max_available"
+                                        :disabled="item.quantity >= item.max_available || isUpdating"
                                         aria-label="Увеличить количество"
                                         class="w-8 h-8 bg-white text-black rounded-sm flex items-center justify-center hover:bg-gray-200 transition disabled:opacity-50 disabled:cursor-not-allowed">
                                     <span class="text-xl font-bold">+</span>
@@ -138,8 +199,8 @@ const isCartEmpty = computed(() => props.cart.length === 0);
                 <div class="flex justify-end mt-8 sm:mt-12">
                     <div class="flex flex-col items-end gap-4">
                         <div class="font-rubik-semibold text-2xl sm:text-3xl text-white">
-                            Итого: {{ formatPrice(props.total) }} ₽
-                        </div>
+    Итого: {{ formatPrice(cartTotal) }} ₽
+</div>
                         <button @click="submitOrder"
                                 class="mt-6 font-rubik-semibold inline-block bg-white hover:bg-pink-200 transition-colors
                                        text-black font-rubik-bold text-lg sm:text-xl px-8 py-3 rounded-lg">
@@ -159,4 +220,15 @@ const isCartEmpty = computed(() => props.cart.length === 0);
 .bg-Wblue { background-color: #011F41; }
 .font-rubik-light { font-family: 'Rubik', sans-serif; font-weight: 300; }
 .font-rubik-semibold { font-family: 'Rubik', sans-serif; font-weight: 600; }
+
+input[type='number']::-webkit-outer-spin-button,
+input[type='number']::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type='number'] {
+  -moz-appearance: textfield; /* Для Firefox */
+}
+
 </style>

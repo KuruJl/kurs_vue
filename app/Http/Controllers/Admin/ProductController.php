@@ -80,37 +80,39 @@ class ProductController extends Controller
         'feature' => 'nullable|string',
         'quantity' => 'required|integer|min:0',
         'images' => 'nullable|array',
-        'images.*' => 'image|mimes:jpeg,png,jpg,gif|max:2048'
+        'images.*' => 'image|mimes:jpeg,png,jpg,gif,webp|max:2048' // Добавил webp на всякий случай
     ]);
 
     $product = Product::create($validated);
 
     if ($request->hasFile('images')) {
         foreach ($request->file('images') as $key => $imageFile) {
-            // Было:
-            // $path = $imageFile->store('products', 'public');
-            // Это сохраняло файл в storage/app/public/products и возвращало "products/filename.jpg"
+            
+            // --- ЛОГИКА ИЗМЕНЕНА ЗДЕСЬ ---
 
-            // Стало:
             // 1. Создаем уникальное имя для файла, чтобы избежать конфликтов
+            // Например: 1678886400_my_cool_photo.jpg
             $imageName = time() . '_' . $imageFile->getClientOriginalName();
             
             // 2. Перемещаем файл напрямую в папку public/images
+            // public_path('images') вернет абсолютный путь к этой папке на сервере.
             $imageFile->move(public_path('images'), $imageName);
 
             // 3. Формируем публичный URL для сохранения в базу данных
+            // Этот путь будет использоваться в <img src="..."> на фронтенде
             $publicPath = '/images/' . $imageName;
 
             // 4. Сохраняем в базу данных правильный путь
             $product->images()->create([
                 'path' => $publicPath,
-                'is_main' => $key === 0
+                'is_main' => $key === 0 // Первое изображение становится главным
             ]);
         }
     }
 
-    return redirect('/admin/products')->with('success', 'Товар добавлен'); // Используем прямую ссылку
+    return redirect()->route('admin.products.index')->with('success', 'Товар успешно добавлен');
 }
+
 
 
     public function edit(Product $product)

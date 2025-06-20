@@ -92,7 +92,7 @@ class OrderController extends Controller
             Log::info('Order successfully created and stock updated.', ['order_id' => $order->id]);
             
             // Вместо profile.edit, лучше на страницу "Мои заказы"
-            return redirect()->route('profile.orders')->with('success', 'Заказ №' . $order->order_number . ' успешно оформлен!');
+            return redirect()->route('profile.edit')->with('success', 'Заказ №' . $order->order_number . ' успешно оформлен!');
 
         } catch (\Exception $e) {
             // Ловим ошибку (например, нехватка товара)
@@ -126,4 +126,5 @@ class OrderController extends Controller
             ])->toArray()
         ]);
     }
+    
 }

@@ -147,4 +147,27 @@ class OrderController extends Controller
         // Возвращаемся на предыдущую страницу с сообщением об успехе.
         return redirect()->back()->with('success', 'Статус заказа №' . $order->order_number . ' успешно обновлен на ' . $order->status);
     }
+
+    public function destroy(Order $order)
+    {
+        // Опционально: Возвращаем товары на склад, если заказ не был 'cancelled'.
+        // Это подстраховка, если админ удаляет активный заказ.
+        $processingStatuses = ['processing', 'shipped', 'delivered'];
+        if (in_array($order->status, $processingStatuses)) {
+            foreach ($order->items as $item) {
+                if ($item->product) {
+                    $item->product->increment('quantity', $item->quantity);
+                }
+            }
+        }
+
+        // Удаляем сам заказ. Благодаря каскадному удалению в миграции (onDelete('cascade')),
+        // все связанные order_items удалятся автоматически.
+        $order->delete();
+        
+        // Перенаправляем на страницу со списком заказов с сообщением об успехе.
+        return redirect()->route('orders.index')->with('success', 'Заказ №' . $order->order_number . ' был успешно удален.');
+    }
+
+    
 }

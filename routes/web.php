@@ -47,6 +47,10 @@ Route::get('/profile/orders', [OrderController::class, 'index'])
 
             Route::put('/orders/{order}/update-items', [AdminOrderController::class, 'updateItems'])->name('orders.updateItems');
 
+            Route::delete('/orders/{order}', [AdminOrderController::class, 'destroy'])->name('orders.destroy');
+
+ Route::resource('categories', \App\Http\Controllers\Admin\CategoryController::class)
+         ->names('admin.categories');
     });
     
     // Маршрут для страницы каталога

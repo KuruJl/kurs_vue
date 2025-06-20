@@ -12,6 +12,11 @@ const props = defineProps({
         type: Array,
         default: () => [],
     },
+    // === ДОБАВЬТЕ ЭТОТ БЛОК ===
+    categories: {
+        type: Array,
+        default: () => [],
+    }
 });
 
 const formatPrice = (value) => {
@@ -61,33 +66,25 @@ console.log('Best Sellers received in Main.vue:', props.bestSellers);
         </div>
     </section>
 
-    <section class="flex flex-col gap-6 sm:gap-12
-                    w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8
-                    mb-6 sm:mb-10 mt-12 sm:mt-20 md:mt-24">
-        <h2 class="font-rubik-medium text-3xl sm:text-4xl md:text-5xl text-pink-200">КАТЕГОРИИ</h2>
-        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
-            <Link href="/catalog?category[]=2" class="font-rubik-medium text-base sm:text-lg text-white
-                        border-2 border-dashed border-white hover:border-solid hover:bg-white/10 transition
-                        h-16 sm:h-[84px] flex items-center justify-center rounded-lg">
-                МЫШКИ
-            </Link>
-            <Link href="/catalog?category[]=1" class="font-rubik-medium text-base sm:text-lg text-white
-                        border-2 border-dashed border-white hover:border-solid hover:bg-white/10 transition
-                        h-16 sm:h-[84px] flex items-center justify-center rounded-lg">
-                КЛАВИАТУРЫ
-            </Link>
-            <Link href="/catalog?category[]=4" class="font-rubik-medium text-base sm:text-lg text-white
-                        border-2 border-dashed border-white hover:border-solid hover:bg-white/10 transition
-                        h-16 sm:h-[84px] flex items-center justify-center rounded-lg">
-                КОВРИКИ
-            </Link>
-            <Link href="/catalog?category[]=3" class="font-rubik-medium text-base sm:text-lg text-white
-                        border-2 border-dashed border-white hover:border-solid hover:bg-white/10 transition
-                        h-16 sm:h-[84px] flex items-center justify-center rounded-lg">
-                НАУШНИКИ
-            </Link>
-        </div>
-    </section>
+    <section class="flex flex-col gap-6 sm:gap-12 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-6 sm:mb-10 mt-12 sm:mt-20 md:mt-24">
+    <h2 class="font-rubik-medium text-3xl sm:text-4xl md:text-5xl text-pink-200">КАТЕГОРИИ</h2>
+    
+    <!-- Проверяем, что категории пришли с бэкенда -->
+    <div v-if="categories.length > 0" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
+        <!-- Запускаем цикл по массиву categories -->
+        <Link 
+            v-for="category in categories" 
+            :key="category.id"
+            :href="`/catalog?category[]=${category.id}`" 
+            class="font-rubik-medium text-base sm:text-lg text-white uppercase border-2 border-dashed border-white hover:border-solid hover:bg-white/10 transition h-16 sm:h-[84px] flex items-center justify-center rounded-lg text-center px-2"
+        >
+            {{ category.name }}
+        </Link>
+    </div>
+    <div v-else>
+        <p class="font-rubik-light text-lg text-white/80 text-center">Категории не найдены.</p>
+    </div>
+</section>
 
     <section class="flex flex-col lg:flex-row gap-6 sm:gap-10 md:gap-16
                     w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-12 sm:mt-20 md:mt-24">
