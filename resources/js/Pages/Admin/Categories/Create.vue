@@ -1,7 +1,8 @@
 <script setup>
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import { watch } from 'vue';
-
+import AppHeader from '../../Header.vue';
+import AppFooter from '../../Footer.vue';
 const form = useForm({
     name: '',
     slug: '',
@@ -18,6 +19,8 @@ const submit = () => {
 </script>
 
 <template>
+    <AppHeader />
+
     <Head title="Создать категорию" />
     <div class="py-12">
         <div class="max-w-2xl mx-auto sm:px-6 lg:px-8">
@@ -44,4 +47,6 @@ const submit = () => {
             </div>
         </div>
     </div>
+    <AppFooter />
+
 </template>

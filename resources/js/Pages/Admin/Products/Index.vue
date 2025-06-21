@@ -93,6 +93,9 @@ const getFirstImageUrl = (images) => {
                     <div class="flex justify-between items-center mb-6">
                         <h3 class="text-lg font-medium">Список товаров</h3>
                         <div class="flex space-x-4">
+                            <Link href="/admin/categories" class="bg-blue-500 hover:bg-blue-600 text-black font-bold py-2 px-4 rounded">
+                                Управление категорями
+                            </Link>
                             <Link href="/admin/products/create" class="bg-blue-500 hover:bg-blue-600 text-black font-bold py-2 px-4 rounded">
                                 Добавить товар
                             </Link>

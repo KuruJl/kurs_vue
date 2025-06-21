@@ -1,7 +1,8 @@
 <script setup>
 // import { defineProps } from 'vue'; // Можете удалить defineProps, это просто предупреждение
 import { Head, Link } from '@inertiajs/vue3';
-
+import AppHeader from '../../Header.vue';
+import AppFooter from '../../Footer.vue';
 const props = defineProps({
   orders: Object,
   availableStatuses: Array, 
@@ -27,6 +28,8 @@ const getStatusColorClass = (status) => {
 </script>
 
 <template>
+    <AppHeader />
+
   <Head title="Управление заказами" />
 
   <div class="py-12">
@@ -108,4 +111,6 @@ const getStatusColorClass = (status) => {
       </div>
     </div>
   </div>
+  <AppFooter />
+
 </template>

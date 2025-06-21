@@ -1,6 +1,8 @@
 <script setup>
 import { ref, computed } from 'vue';
 import { Head, Link, useForm, router  } from '@inertiajs/vue3';
+import AppHeader from '../../Header.vue';
+import AppFooter from '../../Footer.vue';
 defineProps({
     categories: Object,
 });
@@ -13,6 +15,8 @@ const deleteCategory = (categoryId) => {
 </script>
 
 <template>
+    <AppHeader />
+
     <Head title="Управление категориями" />
 
     <div class="py-12">
@@ -59,4 +63,6 @@ const deleteCategory = (categoryId) => {
             </div>
         </div>
     </div>
+    <AppFooter />
+
 </template>

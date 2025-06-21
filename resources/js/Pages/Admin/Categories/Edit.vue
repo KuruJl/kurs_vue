@@ -1,6 +1,7 @@
 <script setup>
 import { Head, Link, useForm } from '@inertiajs/vue3';
-
+import AppHeader from '../../Header.vue';
+import AppFooter from '../../Footer.vue';
 const props = defineProps({
     category: Object,
 });
@@ -16,6 +17,8 @@ const submit = () => {
 </script>
 
 <template>
+    <AppHeader />
+
     <Head :title="`Редактировать: ${category.name}`" />
     <div class="py-12">
         <div class="max-w-2xl mx-auto sm:px-6 lg:px-8">
@@ -42,4 +45,6 @@ const submit = () => {
             </div>
         </div>
     </div>
+    <AppFooter />
+
 </template>

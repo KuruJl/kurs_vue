@@ -1,7 +1,8 @@
 <script setup>
 import { ref, computed } from 'vue';
 import { Head, Link, useForm, router  } from '@inertiajs/vue3';
-
+import AppHeader from '../../Header.vue';
+import AppFooter from '../../Footer.vue';
 // 1. Определяем пропсы, которые приходят от контроллера
 const props = defineProps({
   order: Object, // Данные заказа (могут быть null)
@@ -118,6 +119,8 @@ const submitItemChanges = () => {
 </script>
 
 <template>
+    <AppHeader />
+
   <Head :title="`Заказ №${order?.order_number || 'Неизвестный заказ'}`" />
   <div class="py-12">
     <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
@@ -230,4 +233,6 @@ const submitItemChanges = () => {
       </div>
     </div>
   </div>
+  <AppFooter />
+
 </template>
