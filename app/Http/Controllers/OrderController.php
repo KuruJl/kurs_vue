@@ -34,7 +34,6 @@ class OrderController extends Controller
             return redirect()->route('cart.index')->with('error', 'Ваша корзина пуста.');
         }
 
-        // --- ГЛАВНАЯ ЛОГИКА ТЕПЕРЬ ЗДЕСЬ ---
         try {
             // Запускаем транзакцию, чтобы все операции были атомарными
             $order = DB::transaction(function () use ($cart, $user) {
@@ -57,7 +56,7 @@ class OrderController extends Controller
                     'user_id' => $user->id,
                     'order_number' => 'ORD-' . time() . '-' . uniqid(),
                     'total_amount' => 0, // Посчитаем ниже
-                    'status' => 'pending',
+                    'status' => 'completed',
                 ]);
 
                 $totalAmount = 0;
