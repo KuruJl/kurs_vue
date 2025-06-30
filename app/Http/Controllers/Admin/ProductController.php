@@ -158,8 +158,14 @@ class ProductController extends Controller
         // Добавление новых изображений
         if ($request->hasFile('new_images')) {
             foreach ($request->file('new_images') as $image) {
-                $path = $image->store('products', 'public');
-                $product->images()->create(['path' => $path]);
+                $imageName = time() . '_' . $image->getClientOriginalName();
+                $image->move(public_path('images'), $imageName);
+                $publicPath = '/images/' . $imageName;
+                
+                $product->images()->create([
+                    'path' => $publicPath,
+                    'is_main' => false // или ваша логика для главного изображения
+                ]);
             }
         }
 
