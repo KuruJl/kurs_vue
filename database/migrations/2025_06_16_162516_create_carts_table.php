@@ -13,9 +13,11 @@ return new class extends Migration
     {
         Schema::create('carts', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('user_id')->nullable()->constrained()->onDelete('cascade'); // Связь с таблицей users
-            $table->string('guest_token')->nullable()->unique(); // Уникальный токен для гостевых корзин
-            $table->timestamps(); // created_at, updated_at
+            $table->foreignId('user_id')->nullable()->constrained()->onDelete('cascade');
+            $table->string('guest_token')->nullable()->unique();
+            $table->timestamps();
+        
+            $table->index('guest_token');
         });
     }
 

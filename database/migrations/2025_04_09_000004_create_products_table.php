@@ -13,14 +13,15 @@ return new class extends Migration
     {
         Schema::create('products', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('category_id')->constrained()->onDelete('cascade'); // Пример с внешним ключом
+            $table->foreignId('category_id')->constrained()->onDelete('cascade');
             $table->string('name');
-            $table->decimal('price', 10, 2);
+            $table->decimal('price', 10, 2)->unsigned(); // 1. Цена не может быть отрицательной
             $table->text('description');
-            $table->text('feature');
+            $table->text('feature')->nullable(); // 2. Характеристики могут отсутствовать
             $table->string('slug')->unique();
-            $table->integer('quantity')->default(3)->unsigned();
-            $table->timestamps();
+            $table->unsignedInteger('quantity')->default(0); // 3. Более правильный тип и значение по умолчанию
+            $table->timestamps();    
+            $table->index('category_id');
         });
     }
 

@@ -13,11 +13,12 @@ return new class extends Migration
     {
         Schema::create('cart_items', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('cart_id')->constrained()->onDelete('cascade'); // Связь с таблицей carts
-            $table->foreignId('product_id')->constrained()->onDelete('cascade'); // Связь с таблицей products (предполагаем, что она у вас есть)
-            $table->integer('quantity')->default(1); // Количество товара
-            $table->decimal('price_at_addition', 10, 2); // Цена товара в момент добавления
+            $table->foreignId('cart_id')->constrained()->onDelete('cascade');
+            $table->foreignId('product_id')->constrained()->onDelete('cascade');
+            $table->unsignedInteger('quantity')->default(1);
+            $table->decimal('price_at_addition', 10, 2)->unsigned();
             $table->timestamps();
+            $table->unique(['cart_id', 'product_id']);
         });
     }
 
